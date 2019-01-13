@@ -22,7 +22,7 @@ public class Robot extends TimedRobot
     private Talon leftDriveMotor;
     private Talon rightDriveMotor;
 
-    // DIO
+    // Initialize the sensors on the DIO ports
     private Ultrasonic ultrasonicSensor1;
     private Ultrasonic ultrasonicSensor2;
     private Ultrasonic ultrasonicSensor3;
@@ -45,6 +45,7 @@ public class Robot extends TimedRobot
         leftDriveMotor = new Talon(0);
         rightDriveMotor = new Talon(1);
 
+        // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where)
         drivetrainEncoder1 = new Encoder(20, 21, true, Encoder.EncodingType.k4X);
         drivetrainEncoder2 = new Encoder(22, 23, false, Encoder.EncodingType.k4X);
         ultrasonicSensor1 = new Ultrasonic(4, 5);
@@ -90,6 +91,7 @@ public class Robot extends TimedRobot
             DriverStation.reportError("Error instantiating navX-MXP:  " + ex.getMessage(), true);
         }
 
+        // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
         ultrasonicPollingThread();
     }
 
@@ -135,10 +137,11 @@ public class Robot extends TimedRobot
 
     public void ultrasonicPollingThread()
     {
+        // Sets up a new thread that will poll the ultrasonics at a set interval
         Thread thread = new Thread(() -> {
             while (!Thread.interrupted())
             {
-                // Code run when not stopped / stuck
+                // Pings the ultrasonic sensors
                 ultrasonicSensor1.ping();
                 ultrasonicSensor2.ping();
                 ultrasonicSensor3.ping();
@@ -146,6 +149,7 @@ public class Robot extends TimedRobot
                 Timer.delay(.1);
             }
         });
+        // Starts the thread
         thread.start();
     }
 }
