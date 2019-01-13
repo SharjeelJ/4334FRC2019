@@ -11,6 +11,7 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.team4334.robot.Ultrasonic;
 
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
@@ -23,10 +24,10 @@ public class Robot extends TimedRobot
     private Talon rightDriveMotor;
 
     // DIO
-    private Ultrasonic ultrasonicSensor1;
-    private Ultrasonic ultrasonicSensor2;
-    private Ultrasonic ultrasonicSensor3;
-    private Ultrasonic ultrasonicSensor4;
+    private frc.team4334.robot.Ultrasonic ultrasonicSensor1;
+    private frc.team4334.robot.Ultrasonic ultrasonicSensor2;
+    private frc.team4334.robot.Ultrasonic ultrasonicSensor3;
+    private frc.team4334.robot.Ultrasonic ultrasonicSensor4;
     private Encoder drivetrainEncoder1;
     private Encoder drivetrainEncoder2;
 
@@ -45,12 +46,12 @@ public class Robot extends TimedRobot
         leftDriveMotor = new Talon(0);
         rightDriveMotor = new Talon(1);
 
-        drivetrainEncoder1 = new Encoder(20, 21, false, Encoder.EncodingType.k4X);
-        drivetrainEncoder2 = new Encoder(22, 23, true, Encoder.EncodingType.k4X);
-        ultrasonicSensor1 = new Ultrasonic(0, 1);
-        ultrasonicSensor2 = new Ultrasonic(2, 3);
-        ultrasonicSensor3 = new Ultrasonic(4, 5);
-        ultrasonicSensor4 = new Ultrasonic(6, 7);
+        drivetrainEncoder1 = new Encoder(20, 21, true, Encoder.EncodingType.k4X);
+        drivetrainEncoder2 = new Encoder(22, 23, false, Encoder.EncodingType.k4X);
+        ultrasonicSensor1 = new frc.team4334.robot.Ultrasonic(0, 1);
+        ultrasonicSensor2 = new frc.team4334.robot.Ultrasonic(2, 3);
+        ultrasonicSensor3 = new frc.team4334.robot.Ultrasonic(4, 5);
+        ultrasonicSensor4 = new frc.team4334.robot.Ultrasonic(6, 7);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         leftSideDriveMotors = new SpeedControllerGroup(leftDriveMotor);
@@ -66,18 +67,22 @@ public class Robot extends TimedRobot
 
         // Enables the ultrasonic sensors to calculate distances
         ultrasonicSensor1.setEnabled(true);
-        ultrasonicSensor1.setAutomaticMode(true);
+//        ultrasonicSensor1.setAutomaticMode(true);
         ultrasonicSensor2.setEnabled(true);
-        ultrasonicSensor2.setAutomaticMode(true);
+//        ultrasonicSensor2.setAutomaticMode(true);
         ultrasonicSensor3.setEnabled(true);
-        ultrasonicSensor3.setAutomaticMode(true);
+//        ultrasonicSensor3.setAutomaticMode(true);
         ultrasonicSensor4.setEnabled(true);
-        ultrasonicSensor4.setAutomaticMode(true);
+//        ultrasonicSensor4.setAutomaticMode(true);
 
-        drivetrainEncoder1.setDistancePerPulse(1);
-        drivetrainEncoder2.setDistancePerPulse(1);
-        drivetrainEncoder1.setSamplesToAverage(10);
-        drivetrainEncoder2.setSamplesToAverage(10);
+        drivetrainEncoder1.setMaxPeriod(.1);
+        drivetrainEncoder2.setMaxPeriod(.1);
+        drivetrainEncoder1.setMinRate(10);
+        drivetrainEncoder2.setMinRate(10);
+        drivetrainEncoder1.setDistancePerPulse(5);
+        drivetrainEncoder2.setDistancePerPulse(5);
+        drivetrainEncoder1.setSamplesToAverage(7);
+        drivetrainEncoder2.setSamplesToAverage(7);
 
         // Attempts to setup the navX object otherwise prints an error
         try
@@ -124,6 +129,12 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
         SmartDashboard.putNumber("navX Fused Heading", navX.getFusedHeading());
+
+        ultrasonicSensor1.ping();
+        ultrasonicSensor2.ping();
+        ultrasonicSensor3.ping();
+        ultrasonicSensor4.ping();
+        Timer.delay(.1);
     }
 
     @Override
