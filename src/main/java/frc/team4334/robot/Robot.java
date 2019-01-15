@@ -71,6 +71,7 @@ public class Robot extends TimedRobot
         ultrasonicSensor3.setEnabled(true);
         ultrasonicSensor4.setEnabled(true);
 
+        // Sets the appropriate configuration settings for drivetrain encoders
         drivetrainEncoder1.setMaxPeriod(.1);
         drivetrainEncoder2.setMaxPeriod(.1);
         drivetrainEncoder1.setMinRate(10);
@@ -115,8 +116,27 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
+        // Left Bumper
+        if (primaryController.getBumper(GenericHID.Hand.kLeft))
+        {
+            robotDrive.arcadeDrive(-1.0, -navX.getAngle() * 0.03);
+        }
+        // Right Bumper
+        else if (primaryController.getBumper(GenericHID.Hand.kRight))
+        {
+            robotDrive.arcadeDrive(1.0, -navX.getAngle() * 0.03);
+        }
+        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot if neither the Left Bumper or the Right Bumper were pressed
+        else
+        {
+            robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
+        }
+
+        // X button - Increments the navX's target angle by 15 degrees
+        if (primaryController.getAButton() && !primaryController.getAButtonPressed())
+        {
+            navX.setAngleAdjustment(navX.getAngleAdjustment() + 15);
+        }
 
         SmartDashboard.putNumber("Ultrasonic 1", ultrasonicSensor1.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic 2", ultrasonicSensor2.getRangeInches());
