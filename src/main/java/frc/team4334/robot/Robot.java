@@ -1,10 +1,3 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2017 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.team4334.robot;
 
 import com.kauailabs.navx.frc.AHRS;
@@ -35,9 +28,13 @@ public class Robot extends TimedRobot
     private SpeedControllerGroup rightSideDriveMotors;
     private DifferentialDrive robotDrive;
 
+    // Initialize a pneumatic compressor (setup via the roboRIO config page)
+    private Compressor pneumaticCompressor = new Compressor(0);
+
     // Initialize the navX object
     private AHRS navX;
 
+    // Function that is run once when the robot is first powered on
     @Override
     public void robotInit()
     {
@@ -65,7 +62,7 @@ public class Robot extends TimedRobot
         robotDrive.setExpiration(0.1);
         robotDrive.setMaxOutput(0.80);
 
-        // Enables the ultrasonic sensors to calculate distances
+        // Enables the ultrasonic sensors to calculate distances (need to be polled to give a reading)
         ultrasonicSensor1.setEnabled(true);
         ultrasonicSensor2.setEnabled(true);
         ultrasonicSensor3.setEnabled(true);
@@ -96,23 +93,72 @@ public class Robot extends TimedRobot
         ultrasonicPollingThread();
     }
 
+    // Function that is called periodically during test mode
+    @Override
+    public void testPeriodic()
+    {
+        //        LiveWindow.run();
+    }
+
+    // Function that is called periodically during disabled mode
+    @Override
+    public void disabledPeriodic()
+    {
+        // Grabs the input values from the driverstation SmartDashboard window
+        getSmartDashboardValues();
+
+        // Calls the function to update the SmartDashboard window's values
+        updateSmartDashboard();
+    }
+
+    // Function that is run once each time the robot enters autonomous mode
     @Override
     public void autonomousInit()
     {
+        // Turns off the pneumatic compressor
+        pneumaticCompressor.setClosedLoopControl(false);
+
+        // Resets the navX
+        navX.reset();
+
+        // Resets the drivetrain encoders
+        drivetrainEncoder1.reset();
+        drivetrainEncoder2.reset();
+
+        // Disables motor safety for the drivetrain for autonomous
+        robotDrive.setSafetyEnabled(false);
+    }
+
+    // Function that is run periodically during autonomous mode
+    @Override
+    public void autonomousPeriodic()
+    {
+        // Gets the values from the SmartDashboard
+        getSmartDashboardValues();
+
+        // Calls the function to update the SmartDashboard window's values
+        updateSmartDashboard();
+    }
+
+    // Function that is called once each time the robot enters tele-operated mode
+    @Override
+    public void teleopInit()
+    {
+        // Resets the navX
+        navX.reset();
+
+        // Resets the drivetrain encoders
+        drivetrainEncoder1.reset();
+        drivetrainEncoder2.reset();
+
+        // Turns on the pneumatic compressor
+        pneumaticCompressor.setClosedLoopControl(true);
+
         // Enables motor safety for the drivetrain for teleop
         robotDrive.setSafetyEnabled(true);
     }
 
-    @Override
-    public void autonomousPeriodic()
-    {
-    }
-
-    @Override
-    public void teleopInit()
-    {
-    }
-
+    // Function that is called periodically during tele-operated mode
     @Override
     public void teleopPeriodic()
     {
@@ -138,6 +184,16 @@ public class Robot extends TimedRobot
             navX.setAngleAdjustment(navX.getAngleAdjustment() + 15);
         }
 
+        // Gets the values from the SmartDashboard
+        getSmartDashboardValues();
+
+        // Calls the function to update the SmartDashboard window's values
+        updateSmartDashboard();
+    }
+
+    // Function to update the visually presented data in the SmartDashboard window
+    public void updateSmartDashboard()
+    {
         SmartDashboard.putNumber("Ultrasonic 1", ultrasonicSensor1.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic 2", ultrasonicSensor2.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic 3", ultrasonicSensor3.getRangeInches());
@@ -150,14 +206,16 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("navX Fused Heading", navX.getFusedHeading());
     }
 
-    @Override
-    public void testPeriodic()
+    // Function to get the values from the SmartDashboard window
+    public void getSmartDashboardValues()
     {
+
     }
 
+    // Function to start a new thread to poll the ultrasonic sensors
     public void ultrasonicPollingThread()
     {
-        // Sets up a new thread that will poll the ultrasonics at a set interval
+        // Sets up a new thread that polls at a set interval
         Thread thread = new Thread(() -> {
             while (!Thread.interrupted())
             {
