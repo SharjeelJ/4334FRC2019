@@ -1,5 +1,6 @@
 package frc.team4334.robot;
 
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -12,20 +13,20 @@ public class Robot extends TimedRobot
     private XboxController primaryController = new XboxController(0);
 
     // Initialize the drivetrain motors
-    private Talon leftDriveMotor;
-    private Talon rightDriveMotor;
+    private WPI_TalonSRX drivetrainMotorLeft1;
+    private WPI_TalonSRX drivetrainMotorLeft2;
+    private WPI_TalonSRX drivetrainMotorRight1;
+    private WPI_TalonSRX drivetrainMotorRight2;
 
     // Initialize the sensors on the DIO ports
-    private Ultrasonic ultrasonicSensor1;
-    private Ultrasonic ultrasonicSensor2;
-    private Ultrasonic ultrasonicSensor3;
-    private Ultrasonic ultrasonicSensor4;
-    private Encoder drivetrainEncoder1;
-    private Encoder drivetrainEncoder2;
+    private Ultrasonic ultrasonicSensorFront;
+    private Ultrasonic ultrasonicSensorLeft;
+    private Ultrasonic ultrasonicSensorBack;
+    private Ultrasonic ultrasonicSensorRight;
 
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
-    private SpeedControllerGroup leftSideDriveMotors;
-    private SpeedControllerGroup rightSideDriveMotors;
+    private SpeedControllerGroup drivetrainMotorGroupLeft;
+    private SpeedControllerGroup drivetrainMotorGroupRight;
     private DifferentialDrive robotDrive;
 
     // Initialize a pneumatic compressor (setup via the roboRIO config page)
@@ -39,44 +40,38 @@ public class Robot extends TimedRobot
     public void robotInit()
     {
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where)
-        leftDriveMotor = new Talon(0);
-        rightDriveMotor = new Talon(1);
+        drivetrainMotorLeft1 = new WPI_TalonSRX(0);
+        drivetrainMotorLeft2 = new WPI_TalonSRX(1);
+        drivetrainMotorRight1 = new WPI_TalonSRX(2);
+        drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
         // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where)
-        drivetrainEncoder1 = new Encoder(20, 21, true, Encoder.EncodingType.k4X);
-        drivetrainEncoder2 = new Encoder(22, 23, false, Encoder.EncodingType.k4X);
-        ultrasonicSensor1 = new Ultrasonic(4, 5);
-        ultrasonicSensor2 = new Ultrasonic(2, 3);
-        ultrasonicSensor3 = new Ultrasonic(0, 1);
-        ultrasonicSensor4 = new Ultrasonic(6, 7);
+        ultrasonicSensorFront = new Ultrasonic(4, 5);
+        ultrasonicSensorLeft = new Ultrasonic(2, 3);
+        ultrasonicSensorBack = new Ultrasonic(0, 1);
+        ultrasonicSensorRight = new Ultrasonic(6, 7);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
-        leftSideDriveMotors = new SpeedControllerGroup(leftDriveMotor);
-        rightSideDriveMotors = new SpeedControllerGroup(rightDriveMotor);
-        robotDrive = new DifferentialDrive(leftSideDriveMotors, rightSideDriveMotors);
+        drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
+        drivetrainMotorGroupRight = new SpeedControllerGroup(drivetrainMotorRight1, drivetrainMotorRight2);
+        robotDrive = new DifferentialDrive(drivetrainMotorGroupLeft, drivetrainMotorGroupRight);
 
         // Sets the appropriate configuration settings for the motors
-        leftSideDriveMotors.setInverted(true);
-        rightSideDriveMotors.setInverted(true);
+        drivetrainMotorGroupLeft.setInverted(true);
+        drivetrainMotorGroupRight.setInverted(true);
         robotDrive.setSafetyEnabled(true);
         robotDrive.setExpiration(0.1);
         robotDrive.setMaxOutput(0.80);
 
-        // Enables the ultrasonic sensors to calculate distances (need to be polled to give a reading)
-        ultrasonicSensor1.setEnabled(true);
-        ultrasonicSensor2.setEnabled(true);
-        ultrasonicSensor3.setEnabled(true);
-        ultrasonicSensor4.setEnabled(true);
+        // Sets the appropriate configuration settings for the drivetrain encoders
+        drivetrainMotorLeft1.setSensorPhase(true);
+        drivetrainMotorRight1.setSensorPhase(false);
 
-        // Sets the appropriate configuration settings for drivetrain encoders
-        drivetrainEncoder1.setMaxPeriod(.1);
-        drivetrainEncoder2.setMaxPeriod(.1);
-        drivetrainEncoder1.setMinRate(10);
-        drivetrainEncoder2.setMinRate(10);
-        drivetrainEncoder1.setDistancePerPulse(5);
-        drivetrainEncoder2.setDistancePerPulse(5);
-        drivetrainEncoder1.setSamplesToAverage(7);
-        drivetrainEncoder2.setSamplesToAverage(7);
+        // Enables the ultrasonic sensors to calculate distances (need to be polled to give a reading)
+        ultrasonicSensorFront.setEnabled(true);
+        ultrasonicSensorLeft.setEnabled(true);
+        ultrasonicSensorBack.setEnabled(true);
+        ultrasonicSensorRight.setEnabled(true);
 
         // Attempts to setup the navX object otherwise prints an error
         try
@@ -97,7 +92,7 @@ public class Robot extends TimedRobot
     @Override
     public void testPeriodic()
     {
-        //        LiveWindow.run();
+
     }
 
     // Function that is called periodically during disabled mode
@@ -122,8 +117,8 @@ public class Robot extends TimedRobot
         navX.reset();
 
         // Resets the drivetrain encoders
-        drivetrainEncoder1.reset();
-        drivetrainEncoder2.reset();
+        drivetrainMotorLeft1.setSelectedSensorPosition(0);
+        drivetrainMotorRight1.setSelectedSensorPosition(0);
 
         // Disables motor safety for the drivetrain for autonomous
         robotDrive.setSafetyEnabled(false);
@@ -144,15 +139,15 @@ public class Robot extends TimedRobot
     @Override
     public void teleopInit()
     {
+        // Turns on the pneumatic compressor
+        pneumaticCompressor.setClosedLoopControl(true);
+
         // Resets the navX
         navX.reset();
 
         // Resets the drivetrain encoders
-        drivetrainEncoder1.reset();
-        drivetrainEncoder2.reset();
-
-        // Turns on the pneumatic compressor
-        pneumaticCompressor.setClosedLoopControl(true);
+        drivetrainMotorLeft1.setSelectedSensorPosition(0);
+        drivetrainMotorRight1.setSelectedSensorPosition(0);
 
         // Enables motor safety for the drivetrain for teleop
         robotDrive.setSafetyEnabled(true);
@@ -165,12 +160,12 @@ public class Robot extends TimedRobot
         // Left Bumper
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
-            robotDrive.arcadeDrive(-1.0, -navX.getAngle() * 0.03);
+            robotDrive.arcadeDrive(1.0, -navX.getAngle() * 0.03);
         }
         // Right Bumper
         else if (primaryController.getBumper(GenericHID.Hand.kRight))
         {
-            robotDrive.arcadeDrive(1.0, -navX.getAngle() * 0.03);
+            robotDrive.arcadeDrive(-1.0, -navX.getAngle() * 0.03);
         }
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot if neither the Left Bumper or the Right Bumper were pressed
         else
@@ -178,10 +173,20 @@ public class Robot extends TimedRobot
             robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
         }
 
-        // X button - Increments the navX's target angle by 15 degrees
-        if (primaryController.getAButton() && !primaryController.getAButtonPressed())
+        // A button - Increments the navX's target angle by 15 degrees
+        if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
         {
             navX.setAngleAdjustment(navX.getAngleAdjustment() + 15);
+        }
+        // B button - Decrements the navX's target angle by 15 degrees
+        if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
+        {
+            navX.setAngleAdjustment(navX.getAngleAdjustment() - 15);
+        }
+        // X button - Resets the navX's target angle
+        if (primaryController.getXButton() && !primaryController.getXButtonPressed() && primaryController.getXButtonReleased())
+        {
+            navX.reset();
         }
 
         // Gets the values from the SmartDashboard
@@ -194,12 +199,12 @@ public class Robot extends TimedRobot
     // Function to update the visually presented data in the SmartDashboard window
     public void updateSmartDashboard()
     {
-        SmartDashboard.putNumber("Ultrasonic 1", ultrasonicSensor1.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic 2", ultrasonicSensor2.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic 3", ultrasonicSensor3.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic 4", ultrasonicSensor4.getRangeInches());
-        SmartDashboard.putNumber("Encoder 1", drivetrainEncoder1.get());
-        SmartDashboard.putNumber("Encoder 2", drivetrainEncoder2.get());
+        SmartDashboard.putNumber("Ultrasonic Front", (ultrasonicSensorFront.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front", 999.0) : ultrasonicSensorFront.getRangeInches());
+        SmartDashboard.putNumber("Ultrasonic Left", (ultrasonicSensorLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Left", 999.0) : ultrasonicSensorLeft.getRangeInches());
+        SmartDashboard.putNumber("Ultrasonic Back", (ultrasonicSensorBack.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Back", 999.0) : ultrasonicSensorBack.getRangeInches());
+        SmartDashboard.putNumber("Ultrasonic Right", (ultrasonicSensorRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Right", 999.0) : ultrasonicSensorRight.getRangeInches());
+        SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
+        SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
         SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
@@ -220,10 +225,10 @@ public class Robot extends TimedRobot
             while (!Thread.interrupted())
             {
                 // Pings the ultrasonic sensors
-                ultrasonicSensor1.ping();
-                ultrasonicSensor2.ping();
-                ultrasonicSensor3.ping();
-                ultrasonicSensor4.ping();
+                ultrasonicSensorFront.ping();
+                ultrasonicSensorLeft.ping();
+                ultrasonicSensorBack.ping();
+                ultrasonicSensorRight.ping();
                 Timer.delay(.1);
             }
         });
