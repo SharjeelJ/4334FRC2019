@@ -1,10 +1,15 @@
 package frc.team4334.robot;
 
+import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import jaci.pathfinder.Pathfinder;
+import jaci.pathfinder.PathfinderFRC;
+import jaci.pathfinder.Trajectory;
+import jaci.pathfinder.followers.EncoderFollower;
 
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
@@ -35,6 +40,15 @@ public class Robot extends TimedRobot
     // Initialize the navX object
     private AHRS navX;
 
+    // Initialize configuration values that will be used by the autonomous routines generated using PathWeaver
+    private static final int encoderTicksPerRevolution = 31000;
+    private static final double wheelDiameter = 0.1524;
+    private static final double maxVelocity = 10;
+    private static final String pathWeaverPathName = "Test";
+    private EncoderFollower drivetrainControllerLeft;
+    private EncoderFollower drivetrainControllerRight;
+    private Notifier autonomousController;
+
     // Function that is run once when the robot is first powered on
     @Override
     public void robotInit()
@@ -64,6 +78,8 @@ public class Robot extends TimedRobot
         robotDrive.setMaxOutput(0.80);
 
         // Sets the appropriate configuration settings for the drivetrain encoders
+        drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 30);
+        drivetrainMotorRight1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 30);
         drivetrainMotorLeft1.setSensorPhase(true);
         drivetrainMotorRight1.setSensorPhase(false);
 
@@ -122,6 +138,22 @@ public class Robot extends TimedRobot
 
         // Disables motor safety for the drivetrain for autonomous
         robotDrive.setSafetyEnabled(false);
+
+        // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
+        Trajectory left_trajectory = PathfinderFRC.getTrajectory(pathWeaverPathName + ".left");
+        Trajectory right_trajectory = PathfinderFRC.getTrajectory(pathWeaverPathName + ".right");
+        drivetrainControllerLeft = new EncoderFollower(left_trajectory);
+        drivetrainControllerRight = new EncoderFollower(right_trajectory);
+
+        // Configures the drivetrain left and right side controllers to use the appropriate configurations
+        drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        drivetrainControllerLeft.configurePIDVA(1.0, 0.0, 0.0, 1 / maxVelocity, 0);
+        drivetrainControllerRight.configurePIDVA(1.0, 0.0, 0.0, 1 / maxVelocity, 0);
+
+        // Sets up the autonomous controller and starts it
+        autonomousController = new Notifier(this::followPath);
+        autonomousController.startPeriodic(left_trajectory.get(0).dt);
     }
 
     // Function that is run periodically during autonomous mode
@@ -151,39 +183,43 @@ public class Robot extends TimedRobot
 
         // Enables motor safety for the drivetrain for teleop
         robotDrive.setSafetyEnabled(true);
+
+        // Stops the autonomous controller and the drivetrain
+        autonomousController.stop();
+        robotDrive.stopMotor();
     }
 
     // Function that is called periodically during tele-operated mode
     @Override
     public void teleopPeriodic()
     {
-        // Left Bumper
+        // Left Bumper (Press & Hold) - Rotates the robot to get to the desired heading angle (0 degrees) and goes forward
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
             robotDrive.arcadeDrive(1.0, -navX.getAngle() * 0.03);
         }
-        // Right Bumper
+        // Right Bumper (Press & Hold) - Rotates the robot to get to the desired heading angle (0 degrees) and goes backwards
         else if (primaryController.getBumper(GenericHID.Hand.kRight))
         {
             robotDrive.arcadeDrive(-1.0, -navX.getAngle() * 0.03);
         }
-        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot if neither the Left Bumper or the Right Bumper were pressed
+        // Sends the Y axis input from the right stick (speed) and the X axis input from the left stick (rotation) from the primary controller to move the robot if neither the Left Bumper or the Right Bumper were pressed
         else
         {
             robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
         }
 
-        // A button - Increments the navX's target angle by 15 degrees
+        // A button (Press & Release) - Increments the navX's target angle by 15 degrees
         if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
         {
             navX.setAngleAdjustment(navX.getAngleAdjustment() + 15);
         }
-        // B button - Decrements the navX's target angle by 15 degrees
+        // B button (Press & Release) - Decrements the navX's target angle by 15 degrees
         if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
         {
             navX.setAngleAdjustment(navX.getAngleAdjustment() - 15);
         }
-        // X button - Resets the navX's target angle
+        // X button (Press & Release) - Resets the navX's target angle (desired heading)
         if (primaryController.getXButton() && !primaryController.getXButtonPressed() && primaryController.getXButtonReleased())
         {
             navX.reset();
@@ -203,8 +239,8 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Ultrasonic Left", (ultrasonicSensorLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Left", 999.0) : ultrasonicSensorLeft.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic Back", (ultrasonicSensorBack.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Back", 999.0) : ultrasonicSensorBack.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic Right", (ultrasonicSensorRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Right", 999.0) : ultrasonicSensorRight.getRangeInches());
-        SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
-        SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
+        SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition() / 1500.0);
+        SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition() / 1500.0);
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
         SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
@@ -234,5 +270,24 @@ public class Robot extends TimedRobot
         });
         // Starts the thread
         thread.start();
+    }
+
+    // Function that is called to follow the passed in autonomous routine trajectories fed to the drivetrain motor controllers
+    private void followPath()
+    {
+        if (drivetrainControllerLeft.isFinished() || drivetrainControllerRight.isFinished())
+        {
+            autonomousController.stop();
+        } else
+        {
+            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition()) / 100;
+            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition()) / 100;
+            double heading = navX.getAngle();
+            double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
+            double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
+            double turn = 0.8 * (-1.0 / 80.0) * heading_difference;
+            drivetrainMotorGroupLeft.set(left_speed + turn);
+            drivetrainMotorGroupRight.set(right_speed - turn);
+        }
     }
 }
