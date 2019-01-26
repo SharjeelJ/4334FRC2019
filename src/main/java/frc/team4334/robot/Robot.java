@@ -35,16 +35,17 @@ public class Robot extends TimedRobot
     private DifferentialDrive robotDrive;
 
     // Initialize a pneumatic compressor (setup via the roboRIO config page)
-    private Compressor pneumaticCompressor = new Compressor(0);
+    //    private Compressor pneumaticCompressor = new Compressor(0);
 
     // Initialize the navX object
     private AHRS navX;
 
     // Initialize configuration values that will be used by the autonomous routines generated using PathWeaver
-    private static final int encoderTicksPerRevolution = 31000;
+    //    private static final int encoderTicksPerRevolution = 31000;
+    private static final int encoderTicksPerRevolution = 1500;
     private static final double wheelDiameter = 0.1524;
-    private static final double maxVelocity = 10;
-    private static final String pathWeaverPathName = "Test";
+    private static final double maxVelocity = 100;
+    private static final String pathWeaverPathName = "Test1";
     private EncoderFollower drivetrainControllerLeft;
     private EncoderFollower drivetrainControllerRight;
     private Notifier autonomousController;
@@ -74,12 +75,11 @@ public class Robot extends TimedRobot
         drivetrainMotorGroupLeft.setInverted(true);
         drivetrainMotorGroupRight.setInverted(true);
         robotDrive.setSafetyEnabled(true);
-        robotDrive.setExpiration(0.1);
         robotDrive.setMaxOutput(0.80);
 
         // Sets the appropriate configuration settings for the drivetrain encoders
-        drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 30);
-        drivetrainMotorRight1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 30);
+        drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
+        drivetrainMotorRight1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
         drivetrainMotorLeft1.setSensorPhase(true);
         drivetrainMotorRight1.setSensorPhase(false);
 
@@ -127,7 +127,7 @@ public class Robot extends TimedRobot
     public void autonomousInit()
     {
         // Turns off the pneumatic compressor
-        pneumaticCompressor.setClosedLoopControl(false);
+        //        pneumaticCompressor.setClosedLoopControl(false);
 
         // Resets the navX
         navX.reset();
@@ -140,16 +140,16 @@ public class Robot extends TimedRobot
         robotDrive.setSafetyEnabled(false);
 
         // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
-        Trajectory left_trajectory = PathfinderFRC.getTrajectory(pathWeaverPathName + ".left");
-        Trajectory right_trajectory = PathfinderFRC.getTrajectory(pathWeaverPathName + ".right");
+        Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
+        Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
         drivetrainControllerLeft = new EncoderFollower(left_trajectory);
         drivetrainControllerRight = new EncoderFollower(right_trajectory);
 
         // Configures the drivetrain left and right side controllers to use the appropriate configurations
         drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
         drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-        drivetrainControllerLeft.configurePIDVA(1.0, 0.0, 0.0, 1 / maxVelocity, 0);
-        drivetrainControllerRight.configurePIDVA(1.0, 0.0, 0.0, 1 / maxVelocity, 0);
+        drivetrainControllerLeft.configurePIDVA(0.0, 0.0, 0.0, 1 / maxVelocity, 0);
+        drivetrainControllerRight.configurePIDVA(0.0, 0.0, 0.0, 1 / maxVelocity, 0);
 
         // Sets up the autonomous controller and starts it
         autonomousController = new Notifier(this::followPath);
@@ -172,7 +172,7 @@ public class Robot extends TimedRobot
     public void teleopInit()
     {
         // Turns on the pneumatic compressor
-        pneumaticCompressor.setClosedLoopControl(true);
+        //        pneumaticCompressor.setClosedLoopControl(true);
 
         // Resets the navX
         navX.reset();
@@ -280,14 +280,14 @@ public class Robot extends TimedRobot
             autonomousController.stop();
         } else
         {
-            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition()) / 100;
-            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition()) / 100;
+            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition());
+            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition());
             double heading = navX.getAngle();
             double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
             double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
             double turn = 0.8 * (-1.0 / 80.0) * heading_difference;
-            drivetrainMotorGroupLeft.set(left_speed + turn);
-            drivetrainMotorGroupRight.set(right_speed - turn);
+            drivetrainMotorGroupLeft.set(-left_speed - turn);
+            drivetrainMotorGroupRight.set(right_speed + turn);
         }
     }
 }
