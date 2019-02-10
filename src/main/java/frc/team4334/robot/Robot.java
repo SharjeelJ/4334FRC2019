@@ -41,11 +41,10 @@ public class Robot extends TimedRobot
     private AHRS navX;
 
     // Initialize configuration values that will be used by the autonomous routines generated using PathWeaver
-    //    private static final int encoderTicksPerRevolution = 31000;
-    private static final int encoderTicksPerRevolution = 1500;
+    private static final int encoderTicksPerRevolution = 30000;
     private static final double wheelDiameter = 0.1524;
-    private static final double maxVelocity = 100;
-    private static final String pathWeaverPathName = "Test1";
+    private static final double maxVelocity = 4.5;
+    private static final String pathWeaverPathName = "Straight1";
     private EncoderFollower drivetrainControllerLeft;
     private EncoderFollower drivetrainControllerRight;
     private Notifier autonomousController;
@@ -148,8 +147,8 @@ public class Robot extends TimedRobot
         // Configures the drivetrain left and right side controllers to use the appropriate configurations
         drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
         drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-        drivetrainControllerLeft.configurePIDVA(0.0, 0.0, 0.0, 1 / maxVelocity, 0);
-        drivetrainControllerRight.configurePIDVA(0.0, 0.0, 0.0, 1 / maxVelocity, 0);
+        drivetrainControllerLeft.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
+        drivetrainControllerRight.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
 
         // Sets up the autonomous controller and starts it
         autonomousController = new Notifier(this::followPath);
@@ -185,7 +184,7 @@ public class Robot extends TimedRobot
         robotDrive.setSafetyEnabled(true);
 
         // Stops the autonomous controller and the drivetrain
-        autonomousController.stop();
+        //        autonomousController.stop();
         robotDrive.stopMotor();
     }
 
@@ -239,8 +238,8 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Ultrasonic Left", (ultrasonicSensorLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Left", 999.0) : ultrasonicSensorLeft.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic Back", (ultrasonicSensorBack.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Back", 999.0) : ultrasonicSensorBack.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic Right", (ultrasonicSensorRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Right", 999.0) : ultrasonicSensorRight.getRangeInches());
-        SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition() / 1500.0);
-        SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition() / 1500.0);
+        SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
+        SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
         SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
@@ -288,6 +287,12 @@ public class Robot extends TimedRobot
             double turn = 0.8 * (-1.0 / 80.0) * heading_difference;
             drivetrainMotorGroupLeft.set(-left_speed - turn);
             drivetrainMotorGroupRight.set(right_speed + turn);
+            System.out.println("--------------------------------------------------------------------------");
+            System.out.println("Drivetrain Left Code: " + left_speed);
+            System.out.println("Drivetrain Right Code: " + right_speed);
+            System.out.println("Drivetrain Left Actual: " + drivetrainMotorGroupLeft.get());
+            System.out.println("Drivetrain Right Actual: " + drivetrainMotorGroupRight.get());
+            System.out.println("--------------------------------------------------------------------------");
         }
     }
 }
