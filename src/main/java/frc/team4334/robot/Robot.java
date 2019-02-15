@@ -23,6 +23,18 @@ public class Robot extends TimedRobot
     private WPI_TalonSRX drivetrainMotorRight1;
     private WPI_TalonSRX drivetrainMotorRight2;
 
+    // Initialize the arm motors
+    private VictorSP leftArmMotor;
+    private VictorSP rightArmMotor;
+
+    // Initialize the arm intake motors
+    private VictorSP leftIntakeMotor;
+    private VictorSP rightIntakeMotor;
+
+    // Initialize solenoids on the PCM ports
+    private DoubleSolenoid intakeSolenoids;
+    private DoubleSolenoid gearShifterSolenoids;
+
     // Initialize the sensors on the DIO ports
     private Ultrasonic ultrasonicSensorFront;
     private Ultrasonic ultrasonicSensorLeft;
@@ -35,7 +47,7 @@ public class Robot extends TimedRobot
     private DifferentialDrive robotDrive;
 
     // Initialize a pneumatic compressor (setup via the roboRIO config page)
-    //    private Compressor pneumaticCompressor = new Compressor(0);
+    private Compressor pneumaticCompressor = new Compressor(0);
 
     // Initialize the navX object
     private AHRS navX;
@@ -53,13 +65,23 @@ public class Robot extends TimedRobot
     @Override
     public void robotInit()
     {
-        // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where)
+        // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on the CAN bus)
         drivetrainMotorLeft1 = new WPI_TalonSRX(0);
         drivetrainMotorLeft2 = new WPI_TalonSRX(1);
         drivetrainMotorRight1 = new WPI_TalonSRX(2);
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
-        // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where)
+        // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
+        leftArmMotor = new VictorSP(0);
+        rightArmMotor = new VictorSP(1);
+        leftIntakeMotor = new VictorSP(2);
+        rightIntakeMotor = new VictorSP(3);
+
+        // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
+        intakeSolenoids = new DoubleSolenoid(0, 1);
+        gearShifterSolenoids = new DoubleSolenoid(2, 3);
+
+        // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
         ultrasonicSensorFront = new Ultrasonic(4, 5);
         ultrasonicSensorLeft = new Ultrasonic(2, 3);
         ultrasonicSensorBack = new Ultrasonic(0, 1);
@@ -73,8 +95,16 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the motors
         drivetrainMotorGroupLeft.setInverted(true);
         drivetrainMotorGroupRight.setInverted(true);
+        leftIntakeMotor.setInverted(true);
+        leftArmMotor.setSafetyEnabled(true);
+        rightArmMotor.setSafetyEnabled(true);
+        leftIntakeMotor.setSafetyEnabled(true);
+        rightIntakeMotor.setSafetyEnabled(true);
         robotDrive.setSafetyEnabled(true);
-        robotDrive.setMaxOutput(0.80);
+
+        // Sets the appropriate configuration settings for the solenoids
+        intakeSolenoids.set(DoubleSolenoid.Value.kReverse);
+        gearShifterSolenoids.set(DoubleSolenoid.Value.kReverse);
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -126,7 +156,7 @@ public class Robot extends TimedRobot
     public void autonomousInit()
     {
         // Turns off the pneumatic compressor
-        //        pneumaticCompressor.setClosedLoopControl(false);
+        pneumaticCompressor.setClosedLoopControl(false);
 
         // Resets the navX
         navX.reset();
@@ -134,9 +164,6 @@ public class Robot extends TimedRobot
         // Resets the drivetrain encoders
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
-
-        // Disables motor safety for the drivetrain for autonomous
-        robotDrive.setSafetyEnabled(false);
 
         // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
         Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
@@ -171,7 +198,7 @@ public class Robot extends TimedRobot
     public void teleopInit()
     {
         // Turns on the pneumatic compressor
-        //        pneumaticCompressor.setClosedLoopControl(true);
+        pneumaticCompressor.setClosedLoopControl(!true);
 
         // Resets the navX
         navX.reset();
@@ -179,9 +206,6 @@ public class Robot extends TimedRobot
         // Resets the drivetrain encoders
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
-
-        // Enables motor safety for the drivetrain for teleop
-        robotDrive.setSafetyEnabled(true);
 
         // Stops the autonomous controller and the drivetrain
         //        autonomousController.stop();
@@ -192,37 +216,67 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // Left Bumper (Press & Hold) - Rotates the robot to get to the desired heading angle (0 degrees) and goes forward
+        // Left Bumper (Press & hold) - Moves the intake motors to push out cargo
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
-            robotDrive.arcadeDrive(1.0, -navX.getAngle() * 0.03);
+            leftIntakeMotor.set(1);
+            rightIntakeMotor.set(1);
         }
-        // Right Bumper (Press & Hold) - Rotates the robot to get to the desired heading angle (0 degrees) and goes backwards
+        // Right Bumper (Press & hold) - Moves the intake motors to take in cargo
         else if (primaryController.getBumper(GenericHID.Hand.kRight))
         {
-            robotDrive.arcadeDrive(-1.0, -navX.getAngle() * 0.03);
+            leftIntakeMotor.set(-1);
+            rightIntakeMotor.set(-1);
         }
-        // Sends the Y axis input from the right stick (speed) and the X axis input from the left stick (rotation) from the primary controller to move the robot if neither the Left Bumper or the Right Bumper were pressed
+        // Stops the intake motors from moving if neither the Left Bumper or the Right Bumper were pressed
         else
         {
-            robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
+            leftIntakeMotor.set(0);
+            rightIntakeMotor.set(0);
         }
 
-        // A button (Press & Release) - Increments the navX's target angle by 15 degrees
+        // A button (Press & Release) - Outtakes the hatch panel using the pistons
         if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
         {
-            navX.setAngleAdjustment(navX.getAngleAdjustment() + 15);
+            intakeSolenoids.set(DoubleSolenoid.Value.kForward);
         }
-        // B button (Press & Release) - Decrements the navX's target angle by 15 degrees
-        if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
+        // B button (Press & Release) - Intakes the hatch panel using the pistons
+        if (primaryController.getBButton() && !primaryController.getBButtonPressed() && primaryController.getBButtonReleased())
         {
-            navX.setAngleAdjustment(navX.getAngleAdjustment() - 15);
+            intakeSolenoids.set(DoubleSolenoid.Value.kReverse);
         }
-        // X button (Press & Release) - Resets the navX's target angle (desired heading)
+        // X button (Press & Release) - Shifts the drivetrain gearbox to _ gear
         if (primaryController.getXButton() && !primaryController.getXButtonPressed() && primaryController.getXButtonReleased())
         {
-            navX.reset();
+            gearShifterSolenoids.set(DoubleSolenoid.Value.kForward);
         }
+        // Y button (Press & Release) - Shifts the drivetrain gearbox to _ gear
+        if (primaryController.getYButton() && !primaryController.getYButtonPressed() && primaryController.getYButtonReleased())
+        {
+            gearShifterSolenoids.set(DoubleSolenoid.Value.kReverse);
+        }
+
+        // Passes on the input from the primary controller's left and right triggers to move the arm vertically
+        if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
+        {
+            leftArmMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            rightArmMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+        }
+        // Lowers the arm
+        else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
+        {
+            leftArmMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            rightArmMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+        }
+        // Stops the arm motors
+        else
+        {
+            leftArmMotor.set(0);
+            rightArmMotor.set(0);
+        }
+
+        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
+        robotDrive.arcadeDrive(-primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
