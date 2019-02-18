@@ -34,7 +34,7 @@ public class Robot extends TimedRobot
     private VictorSP cargoArmIntakeMotorRight;
 
     // Initialize the cargo mecanum floor intake motor
-    private VictorSP cargoMecanumIntake;
+    private VictorSP cargoMecanumIntakeMotor;
 
     // Initialize solenoids on the PCM ports
     private DoubleSolenoid gearShifterSolenoid;
@@ -84,7 +84,7 @@ public class Robot extends TimedRobot
         rightArmMotor = new VictorSP(1);
         cargoArmIntakeMotorLeft = new VictorSP(3);
         cargoArmIntakeMotorRight = new VictorSP(2);
-        cargoMecanumIntake = new VictorSP(4);
+        cargoMecanumIntakeMotor = new VictorSP(4);
 
         // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
@@ -232,6 +232,22 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
+        // A button (Press & Release) - Toggles the hatch panel mechanism solenoid
+        if (primaryController.getAButtonReleased())
+        {
+            if (hatchMechanismSolenoid.get().equals(DoubleSolenoid.Value.kReverse))
+                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+
+        // B button (Press & Release) - Toggles the mecanum intake solenoid
+        if (primaryController.getBButtonReleased())
+        {
+            if (mecanumIntakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
+                mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
+            else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+
         // Left Bumper (Press & hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
@@ -251,21 +267,7 @@ public class Robot extends TimedRobot
             rightArmMotor.set(0);
         }
 
-        // A button (Press & Release) - Toggles the hatch panel mechanism solenoid
-        if (primaryController.getAButtonReleased())
-        {
-            if (hatchMechanismSolenoid.get().equals(DoubleSolenoid.Value.kReverse))
-                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
-            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
-        }
-        // B button (Press & Release) - Toggles the mecanum intake solenoid
-        if (primaryController.getBButtonReleased())
-        {
-            if (mecanumIntakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
-                mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
-            else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
-        }
-        // Right stick (Press & Release) - Toggles the drivetrain gear shifter solenoid
+        // Right Stick Button (Press & Release) - Toggles the drivetrain gear shifter solenoid
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
         {
             if (gearShifterSolenoid.get() == DoubleSolenoid.Value.kReverse)
@@ -278,9 +280,9 @@ public class Robot extends TimedRobot
         {
             cargoArmIntakeMotorLeft.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
             cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            cargoMecanumIntake.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoMecanumIntakeMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
 
-            // Retracts the cargo mecanum intake
+            // Retracts the cargo mecanum intake if the ball triggers the arm push button
             if (!cargoArmPushButton.get()) mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Left Trigger (Hold) - Outtakes cargo
@@ -288,14 +290,14 @@ public class Robot extends TimedRobot
         {
             cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
             cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
-            cargoMecanumIntake.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
-        // Stops the intake motors
+        // Stops the cargo intake motors
         else
         {
             cargoArmIntakeMotorLeft.set(0);
             cargoArmIntakeMotorRight.set(0);
-            cargoMecanumIntake.set(0);
+            cargoMecanumIntakeMotor.set(0);
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
@@ -341,7 +343,7 @@ public class Robot extends TimedRobot
                 ultrasonicSensorLeft.ping();
                 ultrasonicSensorBack.ping();
                 ultrasonicSensorRight.ping();
-                Timer.delay(.1);
+                Timer.delay(0.1);
             }
         });
         // Starts the thread
