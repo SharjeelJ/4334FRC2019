@@ -3,6 +3,8 @@ package frc.team4334.robot;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -27,19 +29,25 @@ public class Robot extends TimedRobot
     private VictorSP leftArmMotor;
     private VictorSP rightArmMotor;
 
-    // Initialize the arm intake motors
-    private VictorSP leftIntakeMotor;
-    private VictorSP rightIntakeMotor;
+    // Initialize the cargo arm intake motors
+    private VictorSP cargoArmIntakeMotorLeft;
+    private VictorSP cargoArmIntakeMotorRight;
+
+    // Initialize the cargo mecanum floor intake motor
+    private VictorSP cargoMecanumIntake;
 
     // Initialize solenoids on the PCM ports
-    private DoubleSolenoid intakeSolenoids;
-    private DoubleSolenoid gearShifterSolenoids;
+    private DoubleSolenoid gearShifterSolenoid;
+    private DoubleSolenoid hatchMechanismSolenoid;
+    private DoubleSolenoid mecanumIntakeSolenoid;
 
     // Initialize the sensors on the DIO ports
     private Ultrasonic ultrasonicSensorFront;
     private Ultrasonic ultrasonicSensorLeft;
     private Ultrasonic ultrasonicSensorBack;
     private Ultrasonic ultrasonicSensorRight;
+    private DigitalInput armLimitSwitch;
+    private DigitalInput cargoArmPushButton;
 
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
@@ -74,18 +82,22 @@ public class Robot extends TimedRobot
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
         leftArmMotor = new VictorSP(0);
         rightArmMotor = new VictorSP(1);
-        leftIntakeMotor = new VictorSP(2);
-        rightIntakeMotor = new VictorSP(3);
+        cargoArmIntakeMotorLeft = new VictorSP(3);
+        cargoArmIntakeMotorRight = new VictorSP(2);
+        cargoMecanumIntake = new VictorSP(4);
 
         // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
-        intakeSolenoids = new DoubleSolenoid(0, 1);
-        gearShifterSolenoids = new DoubleSolenoid(2, 3);
+        gearShifterSolenoid = new DoubleSolenoid(2, 3);
+        hatchMechanismSolenoid = new DoubleSolenoid(0, 1);
+        mecanumIntakeSolenoid = new DoubleSolenoid(5, 6);
 
         // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
-        ultrasonicSensorFront = new Ultrasonic(4, 5);
-        ultrasonicSensorLeft = new Ultrasonic(2, 3);
-        ultrasonicSensorBack = new Ultrasonic(0, 1);
-        ultrasonicSensorRight = new Ultrasonic(6, 7);
+        ultrasonicSensorFront = new Ultrasonic(30, 29);
+        ultrasonicSensorLeft = new Ultrasonic(28, 27);
+        ultrasonicSensorBack = new Ultrasonic(26, 25);
+        ultrasonicSensorRight = new Ultrasonic(24, 23);
+        armLimitSwitch = new DigitalInput(2);
+        cargoArmPushButton = new DigitalInput(0);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -95,16 +107,13 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the motors
         drivetrainMotorGroupLeft.setInverted(true);
         drivetrainMotorGroupRight.setInverted(true);
-        leftIntakeMotor.setInverted(true);
-        leftArmMotor.setSafetyEnabled(true);
-        rightArmMotor.setSafetyEnabled(true);
-        leftIntakeMotor.setSafetyEnabled(true);
-        rightIntakeMotor.setSafetyEnabled(true);
+        cargoArmIntakeMotorLeft.setInverted(true);
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
-        intakeSolenoids.set(DoubleSolenoid.Value.kReverse);
-        gearShifterSolenoids.set(DoubleSolenoid.Value.kReverse);
+        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
+        mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -128,6 +137,13 @@ public class Robot extends TimedRobot
         {
             DriverStation.reportError("Error instantiating navX-MXP:  " + ex.getMessage(), true);
         }
+
+        // Instantiates a UsbCamera object from the CameraServer for the first camera for POV driving (starts the SmartDashboard's camera stream)
+        UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000 (Image Analysis)", 0);
+
+        // Sets the properties for the first camera object
+        camera1.setResolution(320, 240);
+        camera1.setFPS(30);
 
         // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
         ultrasonicPollingThread();
@@ -198,7 +214,7 @@ public class Robot extends TimedRobot
     public void teleopInit()
     {
         // Turns on the pneumatic compressor
-        pneumaticCompressor.setClosedLoopControl(!true);
+        pneumaticCompressor.setClosedLoopControl(true);
 
         // Resets the navX
         navX.reset();
@@ -216,67 +232,74 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // Left Bumper (Press & hold) - Moves the intake motors to push out cargo
+        // Left Bumper (Press & hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
-            leftIntakeMotor.set(1);
-            rightIntakeMotor.set(1);
+            leftArmMotor.set(1);
+            rightArmMotor.set(1);
         }
-        // Right Bumper (Press & hold) - Moves the intake motors to take in cargo
-        else if (primaryController.getBumper(GenericHID.Hand.kRight))
+        // Right Bumper (Press & hold) - Moves the arm up if the limit switch is not pressed
+        else if (primaryController.getBumper(GenericHID.Hand.kRight) && armLimitSwitch.get())
         {
-            leftIntakeMotor.set(-1);
-            rightIntakeMotor.set(-1);
+            leftArmMotor.set(-1);
+            rightArmMotor.set(-1);
         }
-        // Stops the intake motors from moving if neither the Left Bumper or the Right Bumper were pressed
-        else
-        {
-            leftIntakeMotor.set(0);
-            rightIntakeMotor.set(0);
-        }
-
-        // A button (Press & Release) - Outtakes the hatch panel using the pistons
-        if (primaryController.getAButton() && !primaryController.getAButtonPressed() && primaryController.getAButtonReleased())
-        {
-            intakeSolenoids.set(DoubleSolenoid.Value.kForward);
-        }
-        // B button (Press & Release) - Intakes the hatch panel using the pistons
-        if (primaryController.getBButton() && !primaryController.getBButtonPressed() && primaryController.getBButtonReleased())
-        {
-            intakeSolenoids.set(DoubleSolenoid.Value.kReverse);
-        }
-        // X button (Press & Release) - Shifts the drivetrain gearbox to _ gear
-        if (primaryController.getXButton() && !primaryController.getXButtonPressed() && primaryController.getXButtonReleased())
-        {
-            gearShifterSolenoids.set(DoubleSolenoid.Value.kForward);
-        }
-        // Y button (Press & Release) - Shifts the drivetrain gearbox to _ gear
-        if (primaryController.getYButton() && !primaryController.getYButtonPressed() && primaryController.getYButtonReleased())
-        {
-            gearShifterSolenoids.set(DoubleSolenoid.Value.kReverse);
-        }
-
-        // Passes on the input from the primary controller's left and right triggers to move the arm vertically
-        if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
-        {
-            leftArmMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            rightArmMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-        }
-        // Lowers the arm
-        else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
-        {
-            leftArmMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
-            rightArmMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
-        }
-        // Stops the arm motors
+        // Stops the arm motors from moving
         else
         {
             leftArmMotor.set(0);
             rightArmMotor.set(0);
         }
 
+        // A button (Press & Release) - Toggles the hatch panel mechanism solenoid
+        if (primaryController.getAButtonReleased())
+        {
+            if (hatchMechanismSolenoid.get().equals(DoubleSolenoid.Value.kReverse))
+                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+        // B button (Press & Release) - Toggles the mecanum intake solenoid
+        if (primaryController.getBButtonReleased())
+        {
+            if (mecanumIntakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
+                mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
+            else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+        // Right stick (Press & Release) - Toggles the drivetrain gear shifter solenoid
+        if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
+        {
+            if (gearShifterSolenoid.get() == DoubleSolenoid.Value.kReverse)
+                gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
+            else gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+
+        // Right Trigger (Hold) - Intakes cargo
+        if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
+        {
+            cargoArmIntakeMotorLeft.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoMecanumIntake.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+
+            // Retracts the cargo mecanum intake
+            if (!cargoArmPushButton.get()) mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+        // Left Trigger (Hold) - Outtakes cargo
+        else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
+        {
+            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoMecanumIntake.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+        }
+        // Stops the intake motors
+        else
+        {
+            cargoArmIntakeMotorLeft.set(0);
+            cargoArmIntakeMotorRight.set(0);
+            cargoMecanumIntake.set(0);
+        }
+
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(-primaryController.getY(GenericHID.Hand.kRight), primaryController.getX(GenericHID.Hand.kLeft));
+        robotDrive.arcadeDrive(-primaryController.getY(GenericHID.Hand.kLeft), primaryController.getX(GenericHID.Hand.kRight));
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
