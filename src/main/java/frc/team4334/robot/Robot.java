@@ -16,6 +16,7 @@ import jaci.pathfinder.followers.EncoderFollower;
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
+    //
     // Initialize an Xbox 360 controller to control the robot
     private XboxController primaryController = new XboxController(0);
 
