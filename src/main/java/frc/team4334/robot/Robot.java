@@ -16,7 +16,6 @@ import jaci.pathfinder.followers.EncoderFollower;
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
-    //
     // Initialize an Xbox 360 controller to control the robot
     private XboxController primaryController = new XboxController(0);
 
@@ -69,6 +68,9 @@ public class Robot extends TimedRobot
     private EncoderFollower drivetrainControllerLeft;
     private EncoderFollower drivetrainControllerRight;
     private Notifier autonomousController;
+
+    // Initialize configuration values
+    private Integer reverseDrivetrainDirection = 1;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -268,6 +270,12 @@ public class Robot extends TimedRobot
             rightArmMotor.set(0);
         }
 
+        // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
+        if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft))
+        {
+            reverseDrivetrainDirection *= -1;
+        }
+
         // Right Stick Button (Press & Release) - Toggles the drivetrain gear shifter solenoid
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
         {
@@ -302,7 +310,7 @@ public class Robot extends TimedRobot
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft), primaryController.getX(GenericHID.Hand.kRight));
+        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight));
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
