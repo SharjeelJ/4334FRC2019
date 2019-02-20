@@ -302,7 +302,7 @@ public class Robot extends TimedRobot
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(-primaryController.getY(GenericHID.Hand.kLeft), primaryController.getX(GenericHID.Hand.kRight));
+        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft), primaryController.getX(GenericHID.Hand.kRight));
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
