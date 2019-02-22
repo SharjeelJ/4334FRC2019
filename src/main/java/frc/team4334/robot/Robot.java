@@ -7,6 +7,7 @@ import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.interfaces.Potentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import jaci.pathfinder.Pathfinder;
 import jaci.pathfinder.PathfinderFRC;
@@ -26,14 +27,17 @@ public class Robot extends TimedRobot
     private WPI_TalonSRX drivetrainMotorRight2;
 
     // Initialize the arm motors
+    // Todo: Switch to VictorSPX for competition
     private VictorSP leftArmMotor;
     private VictorSP rightArmMotor;
 
     // Initialize the cargo arm intake motors
+    // Todo: Switch to VictorSPX for competition)
     private VictorSP cargoArmIntakeMotorLeft;
     private VictorSP cargoArmIntakeMotorRight;
 
     // Initialize the cargo mecanum floor intake motor
+    // Todo: Switch to VictorSPX for competition)
     private VictorSP cargoMecanumIntakeMotor;
 
     // Initialize solenoids on the PCM ports
@@ -42,12 +46,18 @@ public class Robot extends TimedRobot
     private DoubleSolenoid mecanumIntakeSolenoid;
 
     // Initialize the sensors on the DIO ports
-    private Ultrasonic ultrasonicSensorFront;
-    private Ultrasonic ultrasonicSensorLeft;
+    private Ultrasonic ultrasonicSensorFrontLeft;
+    private Ultrasonic ultrasonicSensorFrontRight;
     private Ultrasonic ultrasonicSensorBack;
-    private Ultrasonic ultrasonicSensorRight;
-    private DigitalInput armLimitSwitch;
+    private DigitalInput armPushButton;
     private DigitalInput cargoArmPushButton;
+
+    // Initialize the sensors on the Analog ports
+    private Potentiometer armPotentiometer;
+
+    // Initialize PID controller objects to handle the arm's movement
+    private PIDController armPIDLeft;
+    private PIDController armPIDRight;
 
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
@@ -69,8 +79,12 @@ public class Robot extends TimedRobot
     private EncoderFollower drivetrainControllerRight;
     private Notifier autonomousController;
 
-    // Initialize configuration values
-    private Integer reverseDrivetrainDirection = 1;
+    // Initialize miscellaneous configuration values
+    private int reverseDrivetrainDirection = 1;
+    private int armPIDSetpoint = 90;
+    private int armPIDScale = 1800;
+    private int armPIDOffset = -1585; // Todo: Tune offset at competition
+    private static int armPIDAcceptableError = 2;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -83,24 +97,26 @@ public class Robot extends TimedRobot
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
-        leftArmMotor = new VictorSP(0);
-        rightArmMotor = new VictorSP(1);
-        cargoArmIntakeMotorLeft = new VictorSP(3);
-        cargoArmIntakeMotorRight = new VictorSP(2);
-        cargoMecanumIntakeMotor = new VictorSP(4);
+        leftArmMotor = new VictorSP(0); // Todo: Port 5 & change to VictorSPX for competition
+        rightArmMotor = new VictorSP(1); // Todo: Port 8 & change to VictorSPX for competition
+        cargoArmIntakeMotorLeft = new VictorSP(3); // Todo: Port 6 & change to VictorSPX for competition
+        cargoArmIntakeMotorRight = new VictorSP(2); // Todo: Port 4 & change to VictorSPX for competition
+        cargoMecanumIntakeMotor = new VictorSP(4); // Todo: Port 7 & change to VictorSPX for competition
 
         // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
         hatchMechanismSolenoid = new DoubleSolenoid(0, 1);
-        mecanumIntakeSolenoid = new DoubleSolenoid(5, 6);
+        mecanumIntakeSolenoid = new DoubleSolenoid(5, 6); // Todo: Port 6, 7 for competition
 
         // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
-        ultrasonicSensorFront = new Ultrasonic(30, 29);
-        ultrasonicSensorLeft = new Ultrasonic(28, 27);
-        ultrasonicSensorBack = new Ultrasonic(26, 25);
-        ultrasonicSensorRight = new Ultrasonic(24, 23);
-        armLimitSwitch = new DigitalInput(2);
+        ultrasonicSensorFrontLeft = new Ultrasonic(30, 29); // Todo: Adjust ports for competition
+        ultrasonicSensorFrontRight = new Ultrasonic(28, 27); // Todo: Adjust ports for competition
+        ultrasonicSensorBack = new Ultrasonic(26, 25); // Todo: Adjust ports for competition
+        armPushButton = new DigitalInput(2);
         cargoArmPushButton = new DigitalInput(0);
+
+        // Assigns all the Analog sensors to their respective objects (the number in brackets is the port # of what is connected where on the Analog)
+        armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -118,6 +134,10 @@ public class Robot extends TimedRobot
         gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
         mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
+        // Sets the appropriate configuration settings for the arm PID controllers
+        armPIDLeft = new PIDController(0.05, 0, 0, armPotentiometer, leftArmMotor);
+        armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
+
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
         drivetrainMotorRight1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -125,10 +145,9 @@ public class Robot extends TimedRobot
         drivetrainMotorRight1.setSensorPhase(false);
 
         // Enables the ultrasonic sensors to calculate distances (need to be polled to give a reading)
-        ultrasonicSensorFront.setEnabled(true);
-        ultrasonicSensorLeft.setEnabled(true);
+        ultrasonicSensorFrontLeft.setEnabled(true);
+        ultrasonicSensorFrontRight.setEnabled(true);
         ultrasonicSensorBack.setEnabled(true);
-        ultrasonicSensorRight.setEnabled(true);
 
         // Attempts to setup the navX object otherwise prints an error
         try
@@ -158,6 +177,16 @@ public class Robot extends TimedRobot
     {
 
     }
+
+    // Function that is run once each time the robot enters disabled mode
+    @Override
+    public void disabledInit()
+    {
+        // Disables all PID controllers
+        armPIDLeft.disable();
+        armPIDRight.disable();
+    }
+
 
     // Function that is called periodically during disabled mode
     @Override
@@ -254,18 +283,21 @@ public class Robot extends TimedRobot
         // Left Bumper (Press & hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             leftArmMotor.set(1);
             rightArmMotor.set(1);
         }
-        // Right Bumper (Press & hold) - Moves the arm up if the limit switch is not pressed
-        else if (primaryController.getBumper(GenericHID.Hand.kRight) && armLimitSwitch.get())
+        // Right Bumper (Press & hold) - Moves the arm up if the push button is not pressed
+        else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             leftArmMotor.set(-1);
             rightArmMotor.set(-1);
         }
         // Stops the arm motors from moving
-        else
+        else if (!(armPIDLeft.isEnabled() || armPIDRight.isEnabled()))
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             leftArmMotor.set(0);
             rightArmMotor.set(0);
         }
@@ -287,6 +319,7 @@ public class Robot extends TimedRobot
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             cargoArmIntakeMotorLeft.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
             cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
             cargoMecanumIntakeMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
@@ -297,6 +330,7 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
             cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
             cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
@@ -304,9 +338,60 @@ public class Robot extends TimedRobot
         // Stops the cargo intake motors
         else
         {
+            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
             cargoArmIntakeMotorLeft.set(0);
             cargoArmIntakeMotorRight.set(0);
             cargoMecanumIntakeMotor.set(0);
+        }
+
+        // Up D-Pad (Press & Release) - Sets the PID setpoint to outtake the hatch panel (can be used for hatch intake as well)
+        if (primaryController.getPOV() == 0)
+        {
+            armPIDSetpoint = 90;
+            armPIDLeft.setSetpoint(armPIDSetpoint);
+            armPIDRight.setSetpoint(armPIDSetpoint);
+            armPIDLeft.enable();
+            armPIDRight.enable();
+        }
+        // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo (can be used for hatch intake as well)
+        else if (primaryController.getPOV() == 90)
+        {
+            armPIDSetpoint = 114;
+            armPIDLeft.setSetpoint(armPIDSetpoint);
+            armPIDRight.setSetpoint(armPIDSetpoint);
+            armPIDLeft.enable();
+            armPIDRight.enable();
+        }
+        // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground
+        else if (primaryController.getPOV() == 180)
+        {
+            armPIDSetpoint = 180;
+            armPIDLeft.setSetpoint(armPIDSetpoint);
+            armPIDRight.setSetpoint(armPIDSetpoint);
+            armPIDLeft.enable();
+            armPIDRight.enable();
+        }
+        // Left D-Pad (Press & Release) - Sets the PID setpoint to intake the cargo from the mecanum intake
+        else if (primaryController.getPOV() == 270)
+        {
+            armPIDSetpoint = 10;
+            armPIDLeft.setSetpoint(armPIDSetpoint);
+            armPIDRight.setSetpoint(armPIDSetpoint);
+            armPIDLeft.enable();
+            armPIDRight.enable();
+        }
+        // Disables the PID controller objects if the potentiometer reading is reasonably close to the setpoint
+        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && (armPotentiometer.get() >= armPIDSetpoint - armPIDAcceptableError && armPotentiometer.get() <= armPIDSetpoint + armPIDAcceptableError))
+        {
+            armPIDLeft.disable();
+            armPIDRight.disable();
+        }
+        // Disables the PID controller objects if the arm push button is pressed and adjusts the offset value
+        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get())
+        {
+            armPIDLeft.disable();
+            armPIDRight.disable();
+            armPIDOffset += armPotentiometer.get();
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
@@ -322,16 +407,16 @@ public class Robot extends TimedRobot
     // Function to update the visually presented data in the SmartDashboard window
     public void updateSmartDashboard()
     {
-        SmartDashboard.putNumber("Ultrasonic Front", (ultrasonicSensorFront.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front", 999.0) : ultrasonicSensorFront.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic Left", (ultrasonicSensorLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Left", 999.0) : ultrasonicSensorLeft.getRangeInches());
+        SmartDashboard.putNumber("Ultrasonic Front Left", (ultrasonicSensorFrontLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front Left", 999.0) : ultrasonicSensorFrontLeft.getRangeInches());
+        SmartDashboard.putNumber("Ultrasonic Front Right", (ultrasonicSensorFrontRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front Right", 999.0) : ultrasonicSensorFrontRight.getRangeInches());
         SmartDashboard.putNumber("Ultrasonic Back", (ultrasonicSensorBack.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Back", 999.0) : ultrasonicSensorBack.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic Right", (ultrasonicSensorRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Right", 999.0) : ultrasonicSensorRight.getRangeInches());
         SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
         SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
         SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
         SmartDashboard.putNumber("navX Fused Heading", navX.getFusedHeading());
+        SmartDashboard.putNumber("Arm Potentiometer Angle", armPotentiometer.get());
     }
 
     // Function to get the values from the SmartDashboard window
@@ -348,10 +433,9 @@ public class Robot extends TimedRobot
             while (!Thread.interrupted())
             {
                 // Pings the ultrasonic sensors
-                ultrasonicSensorFront.ping();
-                ultrasonicSensorLeft.ping();
+                ultrasonicSensorFrontLeft.ping();
+                ultrasonicSensorFrontRight.ping();
                 ultrasonicSensorBack.ping();
-                ultrasonicSensorRight.ping();
                 Timer.delay(0.1);
             }
         });
