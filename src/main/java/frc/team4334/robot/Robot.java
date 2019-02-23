@@ -14,6 +14,8 @@ import jaci.pathfinder.PathfinderFRC;
 import jaci.pathfinder.Trajectory;
 import jaci.pathfinder.followers.EncoderFollower;
 
+import java.io.IOException;
+
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
@@ -213,21 +215,26 @@ public class Robot extends TimedRobot
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
 
-        // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
-        Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
-        Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
-        drivetrainControllerLeft = new EncoderFollower(left_trajectory);
-        drivetrainControllerRight = new EncoderFollower(right_trajectory);
+        try
+        {
+            // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
+            Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
+            Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
+            drivetrainControllerLeft = new EncoderFollower(left_trajectory);
+            drivetrainControllerRight = new EncoderFollower(right_trajectory);
 
-        // Configures the drivetrain left and right side controllers to use the appropriate configurations
-        drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-        drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-        drivetrainControllerLeft.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
-        drivetrainControllerRight.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
+            // Configures the drivetrain left and right side controllers to use the appropriate configurations
+            drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+            drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+            drivetrainControllerLeft.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
+            drivetrainControllerRight.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
 
-        // Sets up the autonomous controller and starts it
-        autonomousController = new Notifier(this::followPath);
-        autonomousController.startPeriodic(left_trajectory.get(0).dt);
+            // Sets up the autonomous controller and starts it
+            autonomousController = new Notifier(this::followPath);
+            autonomousController.startPeriodic(left_trajectory.get(0).dt);
+        } catch (IOException e)
+        {
+        }
     }
 
     // Function that is run periodically during autonomous mode
@@ -324,8 +331,16 @@ public class Robot extends TimedRobot
             cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
             cargoMecanumIntakeMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
 
-            // Retracts the cargo mecanum intake if the ball triggers the arm push button
-            if (!cargoArmPushButton.get()) mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+            // Retracts the cargo mecanum intake if the ball triggers the arm push button and sets the arm to the cargo outtake setpoint
+            if (!cargoArmPushButton.get())
+            {
+                armPIDSetpoint = 115;
+                armPIDLeft.setSetpoint(armPIDSetpoint);
+                armPIDRight.setSetpoint(armPIDSetpoint);
+                armPIDLeft.enable();
+                armPIDRight.enable();
+                mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+            }
         }
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
@@ -344,7 +359,7 @@ public class Robot extends TimedRobot
             cargoMecanumIntakeMotor.set(0);
         }
 
-        // Up D-Pad (Press & Release) - Sets the PID setpoint to outtake the hatch panel (can be used for hatch intake as well)
+        // Up D-Pad (Press & Release) - Sets the PID setpoint to outtake the hatch panel (can be used for hatch intake as well) and retracts the mecanum intake
         if (primaryController.getPOV() == 0)
         {
             armPIDSetpoint = 90;
@@ -352,8 +367,9 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
-        // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo (can be used for hatch intake as well)
+        // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo (can be used for hatch intake as well) and retracts the mecanum intake
         else if (primaryController.getPOV() == 90)
         {
             armPIDSetpoint = 114;
@@ -361,15 +377,17 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
-        // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground
+        // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
         else if (primaryController.getPOV() == 180)
         {
-            armPIDSetpoint = 180;
+            armPIDSetpoint = 200;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Left D-Pad (Press & Release) - Sets the PID setpoint to intake the cargo from the mecanum intake
         else if (primaryController.getPOV() == 270)
@@ -379,6 +397,7 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
         }
         // Disables the PID controller objects if the potentiometer reading is reasonably close to the setpoint
         else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && (armPotentiometer.get() >= armPIDSetpoint - armPIDAcceptableError && armPotentiometer.get() <= armPIDSetpoint + armPIDAcceptableError))
@@ -387,7 +406,7 @@ public class Robot extends TimedRobot
             armPIDRight.disable();
         }
         // Disables the PID controller objects if the arm push button is pressed and adjusts the offset value
-        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get())
+        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get() && armPIDSetpoint != 115)
         {
             armPIDLeft.disable();
             armPIDRight.disable();
@@ -417,6 +436,8 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
         SmartDashboard.putNumber("navX Fused Heading", navX.getFusedHeading());
         SmartDashboard.putNumber("Arm Potentiometer Angle", armPotentiometer.get());
+        SmartDashboard.putNumber("Arm Potentiometer Setpoint", armPIDSetpoint);
+        SmartDashboard.putNumber("Arm PID Offset", armPIDOffset);
     }
 
     // Function to get the values from the SmartDashboard window
