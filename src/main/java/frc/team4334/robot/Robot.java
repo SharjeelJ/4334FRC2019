@@ -371,6 +371,7 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
@@ -381,6 +382,7 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
@@ -391,6 +393,7 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Left D-Pad (Press & Release) - Sets the PID setpoint to intake the cargo from the mecanum intake
@@ -401,6 +404,7 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
+            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
         }
         // Disables the PID controller objects if the potentiometer reading is reasonably close to the setpoint
