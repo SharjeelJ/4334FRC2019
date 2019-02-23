@@ -85,8 +85,12 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1585; // Todo: Tune offset at competition
+    private static int armPIDOffset = -1525; // Todo: Tune offset at competition
     private static final int armPIDAcceptableError = 2;
+    private static final int armPIDHatchIntakeOuttakeSetpoint = 90;
+    private static final int armPIDCargoOuttakeSetpoint = 100;
+    private static final int armPIDHatchIntakeSetpoint = 200;
+    private static final int armPIDCargoIntakeSetpoint = 10;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -334,7 +338,7 @@ public class Robot extends TimedRobot
             // Retracts the cargo mecanum intake if the ball triggers the arm push button and sets the arm to the cargo outtake setpoint
             if (!cargoArmPushButton.get())
             {
-                armPIDSetpoint = 115;
+                armPIDSetpoint = armPIDCargoOuttakeSetpoint + 1;
                 armPIDLeft.setSetpoint(armPIDSetpoint);
                 armPIDRight.setSetpoint(armPIDSetpoint);
                 armPIDLeft.enable();
@@ -359,20 +363,20 @@ public class Robot extends TimedRobot
             cargoMecanumIntakeMotor.set(0);
         }
 
-        // Up D-Pad (Press & Release) - Sets the PID setpoint to outtake the hatch panel (can be used for hatch intake as well) and retracts the mecanum intake
+        // Up D-Pad (Press & Release) - Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         if (primaryController.getPOV() == 0)
         {
-            armPIDSetpoint = 90;
+            armPIDSetpoint = armPIDHatchIntakeOuttakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
-        // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo (can be used for hatch intake as well) and retracts the mecanum intake
+        // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         else if (primaryController.getPOV() == 90)
         {
-            armPIDSetpoint = 114;
+            armPIDSetpoint = armPIDCargoOuttakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -382,7 +386,7 @@ public class Robot extends TimedRobot
         // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
         else if (primaryController.getPOV() == 180)
         {
-            armPIDSetpoint = 200;
+            armPIDSetpoint = armPIDHatchIntakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -392,7 +396,7 @@ public class Robot extends TimedRobot
         // Left D-Pad (Press & Release) - Sets the PID setpoint to intake the cargo from the mecanum intake
         else if (primaryController.getPOV() == 270)
         {
-            armPIDSetpoint = 10;
+            armPIDSetpoint = armPIDCargoIntakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -406,7 +410,7 @@ public class Robot extends TimedRobot
             armPIDRight.disable();
         }
         // Disables the PID controller objects if the arm push button is pressed and adjusts the offset value
-        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get() && armPIDSetpoint != 115)
+        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get() && armPIDSetpoint != (armPIDCargoOuttakeSetpoint + 1))
         {
             armPIDLeft.disable();
             armPIDRight.disable();
