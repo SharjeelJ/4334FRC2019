@@ -82,11 +82,11 @@ public class Robot extends TimedRobot
     private Notifier autonomousController;
 
     // Initialize miscellaneous configuration values
-    private int reverseDrivetrainDirection = 1;
-    private int armPIDSetpoint = 90;
-    private int armPIDScale = 1800;
-    private int armPIDOffset = -1585; // Todo: Tune offset at competition
-    private static int armPIDAcceptableError = 2;
+    private static int reverseDrivetrainDirection = -1;
+    private static int armPIDSetpoint = 90;
+    private static int armPIDScale = 1800;
+    private static int armPIDOffset = -1585; // Todo: Tune offset at competition
+    private static final int armPIDAcceptableError = 2;
 
     // Function that is run once when the robot is first powered on
     @Override
