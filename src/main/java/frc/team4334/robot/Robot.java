@@ -76,7 +76,7 @@ public class Robot extends TimedRobot
     private static final int encoderTicksPerRevolution = 30000;
     private static final double wheelDiameter = 0.1524;
     private static final double maxVelocity = 4.5;
-    private static final String pathWeaverPathName = "Straight1";
+    private static final String pathWeaverPathName = "Test2";
     private EncoderFollower drivetrainControllerLeft;
     private EncoderFollower drivetrainControllerRight;
     private Notifier autonomousController;
@@ -85,10 +85,10 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1525; // Todo: Tune offset at competition
+    private static int armPIDOffset = -1520; // Todo: Tune offset at competition
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchIntakeOuttakeSetpoint = 90;
-    private static final int armPIDCargoOuttakeSetpoint = 100;
+    private static final int armPIDCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 200;
     private static final int armPIDCargoIntakeSetpoint = 10;
 
@@ -230,8 +230,8 @@ public class Robot extends TimedRobot
             // Configures the drivetrain left and right side controllers to use the appropriate configurations
             drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
             drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-            drivetrainControllerLeft.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
-            drivetrainControllerRight.configurePIDVA(1.0, 0.15, 0.1, 1 / maxVelocity, 0);
+            drivetrainControllerLeft.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
+            drivetrainControllerRight.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
 
             // Sets up the autonomous controller and starts it
             autonomousController = new Notifier(this::followPath);
@@ -275,13 +275,9 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // A button (Press & Release) - Toggles the hatch panel mechanism solenoid
-        if (primaryController.getAButtonReleased())
-        {
-            if (hatchMechanismSolenoid.get().equals(DoubleSolenoid.Value.kReverse))
-                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
-            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
-        }
+        // A button (Press & hold) - Engages the hatch panel mechanism solenoid
+        if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // B button (Press & Release) - Toggles the mecanum intake solenoid
         if (primaryController.getBButtonReleased())
@@ -314,10 +310,7 @@ public class Robot extends TimedRobot
         }
 
         // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
-        if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft))
-        {
-            reverseDrivetrainDirection *= -1;
-        }
+        if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft)) reverseDrivetrainDirection *= -1;
 
         // Right Stick Button (Press & Release) - Toggles the drivetrain gear shifter solenoid
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
@@ -371,7 +364,6 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
-            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
@@ -382,7 +374,6 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
-            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
@@ -393,7 +384,6 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
-            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
         // Left D-Pad (Press & Release) - Sets the PID setpoint to intake the cargo from the mecanum intake
@@ -404,7 +394,6 @@ public class Robot extends TimedRobot
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
             armPIDRight.enable();
-            hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
         }
         // Disables the PID controller objects if the potentiometer reading is reasonably close to the setpoint
@@ -422,7 +411,7 @@ public class Robot extends TimedRobot
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight));
+        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.8);
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
@@ -485,9 +474,9 @@ public class Robot extends TimedRobot
             double heading = navX.getAngle();
             double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
             double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
-            double turn = 0.8 * (-1.0 / 80.0) * heading_difference;
-            drivetrainMotorGroupLeft.set(-left_speed - turn);
-            drivetrainMotorGroupRight.set(right_speed + turn);
+            double turn = 0.35 * (-1.0 / 80.0) * heading_difference;
+            drivetrainMotorGroupLeft.set(left_speed - turn);
+            drivetrainMotorGroupRight.set(-right_speed - turn);
             System.out.println("--------------------------------------------------------------------------");
             System.out.println("Drivetrain Left Code: " + left_speed);
             System.out.println("Drivetrain Right Code: " + right_speed);
