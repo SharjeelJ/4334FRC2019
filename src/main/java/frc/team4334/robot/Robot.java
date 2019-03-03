@@ -9,12 +9,6 @@ import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import jaci.pathfinder.Pathfinder;
-import jaci.pathfinder.PathfinderFRC;
-import jaci.pathfinder.Trajectory;
-import jaci.pathfinder.followers.EncoderFollower;
-
-import java.io.IOException;
 
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
@@ -73,22 +67,22 @@ public class Robot extends TimedRobot
     private AHRS navX;
 
     // Initialize configuration values that will be used by the autonomous routines generated using PathWeaver
-    private static final int encoderTicksPerRevolution = 30000;
-    private static final double wheelDiameter = 0.1524;
-    private static final double maxVelocity = 4.5;
-    private static final String pathWeaverPathName = "Test2";
-    private EncoderFollower drivetrainControllerLeft;
-    private EncoderFollower drivetrainControllerRight;
-    private Notifier autonomousController;
+    //    private static final int encoderTicksPerRevolution = 30000;
+    //    private static final double wheelDiameter = 0.1524;
+    //    private static final double maxVelocity = 4.5;
+    //    private static final String pathWeaverPathName = "Test2";
+    //    private EncoderFollower drivetrainControllerLeft;
+    //    private EncoderFollower drivetrainControllerRight;
+    //    private Notifier autonomousController;
 
     // Initialize miscellaneous configuration values
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1520; // Todo: Tune offset at competition
+    private static int armPIDOffset = -1445; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
     private static final int armPIDAcceptableError = 2;
-    private static final int armPIDHatchIntakeOuttakeSetpoint = 90;
-    private static final int armPIDCargoOuttakeSetpoint = 110;
+    private static final int armPIDHatchOuttakeSetpoint = 90;
+    private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 200;
     private static final int armPIDCargoIntakeSetpoint = 10;
 
@@ -167,7 +161,7 @@ public class Robot extends TimedRobot
         }
 
         // Instantiates a UsbCamera object from the CameraServer for the first camera for POV driving (starts the SmartDashboard's camera stream)
-        UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000 (Image Analysis)", 0);
+        UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000", 0);
 
         // Sets the properties for the first camera object
         camera1.setResolution(320, 240);
@@ -219,37 +213,40 @@ public class Robot extends TimedRobot
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
 
-        try
-        {
-            // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
-            Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
-            Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
-            drivetrainControllerLeft = new EncoderFollower(left_trajectory);
-            drivetrainControllerRight = new EncoderFollower(right_trajectory);
-
-            // Configures the drivetrain left and right side controllers to use the appropriate configurations
-            drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-            drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
-            drivetrainControllerLeft.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
-            drivetrainControllerRight.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
-
-            // Sets up the autonomous controller and starts it
-            autonomousController = new Notifier(this::followPath);
-            autonomousController.startPeriodic(left_trajectory.get(0).dt);
-        } catch (IOException e)
-        {
-        }
+        //        try
+        //        {
+        //            // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
+        //            Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
+        //            Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
+        //            drivetrainControllerLeft = new EncoderFollower(left_trajectory);
+        //            drivetrainControllerRight = new EncoderFollower(right_trajectory);
+        //
+        //            // Configures the drivetrain left and right side controllers to use the appropriate configurations
+        //            drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        //            drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        //            drivetrainControllerLeft.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
+        //            drivetrainControllerRight.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
+        //
+        //            // Sets up the autonomous controller and starts it
+        //            autonomousController = new Notifier(this::followPath);
+        //            autonomousController.startPeriodic(left_trajectory.get(0).dt);
+        //        } catch (IOException e)
+        //        {
+        //        }
     }
 
     // Function that is run periodically during autonomous mode
     @Override
     public void autonomousPeriodic()
     {
+        // Calls the function for tele-operated mode
+        teleopPeriodic();
+
         // Gets the values from the SmartDashboard
-        getSmartDashboardValues();
+        //        getSmartDashboardValues();
 
         // Calls the function to update the SmartDashboard window's values
-        updateSmartDashboard();
+        //        updateSmartDashboard();
     }
 
     // Function that is called once each time the robot enters tele-operated mode
@@ -331,7 +328,7 @@ public class Robot extends TimedRobot
             // Retracts the cargo mecanum intake if the ball triggers the arm push button and sets the arm to the cargo outtake setpoint
             if (!cargoArmPushButton.get())
             {
-                armPIDSetpoint = armPIDCargoOuttakeSetpoint + 1;
+                armPIDSetpoint = armPIDHatchIntakeCargoOuttakeSetpoint + 1;
                 armPIDLeft.setSetpoint(armPIDSetpoint);
                 armPIDRight.setSetpoint(armPIDSetpoint);
                 armPIDLeft.enable();
@@ -359,7 +356,7 @@ public class Robot extends TimedRobot
         // Up D-Pad (Press & Release) - Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         if (primaryController.getPOV() == 0)
         {
-            armPIDSetpoint = armPIDHatchIntakeOuttakeSetpoint;
+            armPIDSetpoint = armPIDHatchOuttakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -369,7 +366,7 @@ public class Robot extends TimedRobot
         // Right D-Pad (Press & Release) - Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         else if (primaryController.getPOV() == 90)
         {
-            armPIDSetpoint = armPIDCargoOuttakeSetpoint;
+            armPIDSetpoint = armPIDHatchIntakeCargoOuttakeSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -403,7 +400,7 @@ public class Robot extends TimedRobot
             armPIDRight.disable();
         }
         // Disables the PID controller objects if the arm push button is pressed and adjusts the offset value
-        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get() && armPIDSetpoint != (armPIDCargoOuttakeSetpoint + 1))
+        else if ((armPIDLeft.isEnabled() || armPIDRight.isEnabled()) && !armPushButton.get() && armPIDSetpoint != (armPIDHatchIntakeCargoOuttakeSetpoint + 1))
         {
             armPIDLeft.disable();
             armPIDRight.disable();
@@ -462,27 +459,27 @@ public class Robot extends TimedRobot
     }
 
     // Function that is called to follow the passed in autonomous routine trajectories fed to the drivetrain motor controllers
-    private void followPath()
-    {
-        if (drivetrainControllerLeft.isFinished() || drivetrainControllerRight.isFinished())
-        {
-            autonomousController.stop();
-        } else
-        {
-            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition());
-            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition());
-            double heading = navX.getAngle();
-            double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
-            double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
-            double turn = 0.35 * (-1.0 / 80.0) * heading_difference;
-            drivetrainMotorGroupLeft.set(left_speed - turn);
-            drivetrainMotorGroupRight.set(-right_speed - turn);
-            System.out.println("--------------------------------------------------------------------------");
-            System.out.println("Drivetrain Left Code: " + left_speed);
-            System.out.println("Drivetrain Right Code: " + right_speed);
-            System.out.println("Drivetrain Left Actual: " + drivetrainMotorGroupLeft.get());
-            System.out.println("Drivetrain Right Actual: " + drivetrainMotorGroupRight.get());
-            System.out.println("--------------------------------------------------------------------------");
-        }
-    }
+    //    private void followPath()
+    //    {
+    //        if (drivetrainControllerLeft.isFinished() || drivetrainControllerRight.isFinished())
+    //        {
+    //            autonomousController.stop();
+    //        } else
+    //        {
+    //            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition());
+    //            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition());
+    //            double heading = navX.getAngle();
+    //            double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
+    //            double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
+    //            double turn = 0.35 * (-1.0 / 80.0) * heading_difference;
+    //            drivetrainMotorGroupLeft.set(left_speed - turn);
+    //            drivetrainMotorGroupRight.set(-right_speed - turn);
+    //            System.out.println("--------------------------------------------------------------------------");
+    //            System.out.println("Drivetrain Left Code: " + left_speed);
+    //            System.out.println("Drivetrain Right Code: " + right_speed);
+    //            System.out.println("Drivetrain Left Actual: " + drivetrainMotorGroupLeft.get());
+    //            System.out.println("Drivetrain Right Actual: " + drivetrainMotorGroupRight.get());
+    //            System.out.println("--------------------------------------------------------------------------");
+    //        }
+    //    }
 }
