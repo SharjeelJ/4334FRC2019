@@ -79,7 +79,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1445; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
+    private static int armPIDOffset = -918; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
