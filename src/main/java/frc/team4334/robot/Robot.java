@@ -309,13 +309,11 @@ public class Robot extends TimedRobot
         // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft)) reverseDrivetrainDirection *= -1;
 
-        // Right Stick Button (Press & Release) - Toggles the drivetrain gear shifter solenoid
+        // Right Stick Button (Press & Release) - Enables the drivetrain gear shifter solenoid (switches to high gear) and disables it (switches to low gear) when the robot slows down
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
-        {
-            if (gearShifterSolenoid.get() == DoubleSolenoid.Value.kReverse)
-                gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
-            else gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
-        }
+            gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
+        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) <= 0.1 && Math.abs(primaryController.getX(GenericHID.Hand.kRight)) <= 0.1)
+            gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
@@ -406,12 +404,6 @@ public class Robot extends TimedRobot
             armPIDRight.disable();
             armPIDOffset += armPotentiometer.get();
         }
-
-        // Auto switches the drivetrain gearshifter solenoid based on certain thresholds
-        if (Math.abs(primaryController.getX(GenericHID.Hand.kRight)) >= 0.75)
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
-        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) > 0.75 && Math.abs(primaryController.getX(GenericHID.Hand.kRight)) < 0.75)
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
         robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.65);
