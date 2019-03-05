@@ -407,8 +407,14 @@ public class Robot extends TimedRobot
             armPIDOffset += armPotentiometer.get();
         }
 
+        // Auto switches the drivetrain gearshifter solenoid based on certain thresholds
+        if (Math.abs(primaryController.getX(GenericHID.Hand.kRight)) >= 0.75)
+            gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
+        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) > 0.75 && Math.abs(primaryController.getX(GenericHID.Hand.kRight)) < 0.75)
+            gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
+
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.8);
+        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.65);
 
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
