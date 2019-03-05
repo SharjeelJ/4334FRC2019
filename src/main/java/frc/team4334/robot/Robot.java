@@ -312,7 +312,7 @@ public class Robot extends TimedRobot
         // Right Stick Button (Press & Release) - Enables the drivetrain gear shifter solenoid (switches to high gear) and disables it (switches to low gear) when the robot slows down
         if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
             gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
-        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) <= 0.1 && Math.abs(primaryController.getX(GenericHID.Hand.kRight)) <= 0.1)
+        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) <= 0.20)
             gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // Right Trigger (Hold) - Intakes cargo
