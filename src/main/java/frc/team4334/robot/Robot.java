@@ -79,12 +79,12 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -918; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
+    private static int armPIDOffset = -1504; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
-    private static final int armPIDHatchIntakeSetpoint = 200;
-    private static final int armPIDCargoIntakeSetpoint = 10;
+    private static final int armPIDHatchIntakeSetpoint = 185;
+    private static final int armPIDCargoIntakeSetpoint = 2;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -164,8 +164,8 @@ public class Robot extends TimedRobot
         UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000", 0);
 
         // Sets the properties for the first camera object
-        camera1.setResolution(320, 240);
-        camera1.setFPS(30);
+//        camera1.setResolution(320, 240);
+//        camera1.setFPS(15);
 
         // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
         ultrasonicPollingThread();
@@ -418,12 +418,12 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
         SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
-        SmartDashboard.putNumber("navX Angle Adjustment", navX.getAngleAdjustment());
-        SmartDashboard.putNumber("navX Compass Heading", navX.getCompassHeading());
-        SmartDashboard.putNumber("navX Fused Heading", navX.getFusedHeading());
         SmartDashboard.putNumber("Arm Potentiometer Angle", armPotentiometer.get());
         SmartDashboard.putNumber("Arm Potentiometer Setpoint", armPIDSetpoint);
         SmartDashboard.putNumber("Arm PID Offset", armPIDOffset);
+        SmartDashboard.putNumber("Arm PID Corrected Offset", 90 + armPIDOffset - armPotentiometer.get());
+        SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
+        SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
     }
 
     // Function to get the values from the SmartDashboard window
