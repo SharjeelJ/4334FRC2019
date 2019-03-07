@@ -1,7 +1,10 @@
 package frc.team4334.robot;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
@@ -23,18 +26,15 @@ public class Robot extends TimedRobot
     private WPI_TalonSRX drivetrainMotorRight2;
 
     // Initialize the arm motors
-    // Todo: Switch to VictorSPX for competition
-    private VictorSP leftArmMotor;
-    private VictorSP rightArmMotor;
+    private WPI_VictorSPX leftArmMotor;
+    private WPI_VictorSPX rightArmMotor;
 
     // Initialize the cargo arm intake motors
-    // Todo: Switch to VictorSPX for competition)
-    private VictorSP cargoArmIntakeMotorLeft;
-    private VictorSP cargoArmIntakeMotorRight;
+    private VictorSPX cargoArmIntakeMotorLeft;
+    private VictorSPX cargoArmIntakeMotorRight;
 
     // Initialize the cargo mecanum floor intake motor
-    // Todo: Switch to VictorSPX for competition)
-    private VictorSP cargoMecanumIntakeMotor;
+    private VictorSPX cargoMecanumIntakeMotor;
 
     // Initialize solenoids on the PCM ports
     private DoubleSolenoid gearShifterSolenoid;
@@ -97,16 +97,16 @@ public class Robot extends TimedRobot
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
-        leftArmMotor = new VictorSP(0); // Todo: Port 5 & change to VictorSPX for competition
-        rightArmMotor = new VictorSP(1); // Todo: Port 8 & change to VictorSPX for competition
-        cargoArmIntakeMotorLeft = new VictorSP(3); // Todo: Port 6 & change to VictorSPX for competition
-        cargoArmIntakeMotorRight = new VictorSP(2); // Todo: Port 4 & change to VictorSPX for competition
-        cargoMecanumIntakeMotor = new VictorSP(4); // Todo: Port 7 & change to VictorSPX for competition
+        leftArmMotor = new WPI_VictorSPX(5);
+        rightArmMotor = new WPI_VictorSPX(8);
+        cargoArmIntakeMotorLeft = new VictorSPX(6);
+        cargoArmIntakeMotorRight = new VictorSPX(4);
+        cargoMecanumIntakeMotor = new VictorSPX(7);
 
         // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
         hatchMechanismSolenoid = new DoubleSolenoid(0, 1);
-        mecanumIntakeSolenoid = new DoubleSolenoid(5, 6); // Todo: Port 6, 7 for competition
+        mecanumIntakeSolenoid = new DoubleSolenoid(6, 7);
 
         // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
         ultrasonicSensorFrontLeft = new Ultrasonic(30, 29); // Todo: Adjust ports for competition
@@ -287,23 +287,20 @@ public class Robot extends TimedRobot
         // Left Bumper (Press & hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            leftArmMotor.set(1);
-            rightArmMotor.set(1);
+            leftArmMotor.set(ControlMode.PercentOutput, 1);
+            rightArmMotor.set(ControlMode.PercentOutput, 1);
         }
         // Right Bumper (Press & hold) - Moves the arm up if the push button is not pressed
         else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            leftArmMotor.set(-1);
-            rightArmMotor.set(-1);
+            leftArmMotor.set(ControlMode.PercentOutput, -1);
+            rightArmMotor.set(ControlMode.PercentOutput, -1);
         }
         // Stops the arm motors from moving
         else if (!(armPIDLeft.isEnabled() || armPIDRight.isEnabled()))
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            leftArmMotor.set(0);
-            rightArmMotor.set(0);
+            leftArmMotor.set(ControlMode.PercentOutput, 0);
+            rightArmMotor.set(ControlMode.PercentOutput, 0);
         }
 
         // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
@@ -318,10 +315,9 @@ public class Robot extends TimedRobot
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            cargoArmIntakeMotorLeft.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            cargoMecanumIntakeMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
 
             // Retracts the cargo mecanum intake if the ball triggers the arm push button and sets the arm to the cargo outtake setpoint
             if (!cargoArmPushButton.get())
@@ -337,18 +333,16 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
-            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
-            cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
         else
         {
-            // Todo: Use ControlMode.PercentOutput as the first parameter for competition
-            cargoArmIntakeMotorLeft.set(0);
-            cargoArmIntakeMotorRight.set(0);
-            cargoMecanumIntakeMotor.set(0);
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, 0);
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, 0);
+            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, 0);
         }
 
         // Up D-Pad (Press & Release) - Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
