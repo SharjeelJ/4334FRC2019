@@ -27,6 +27,24 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
         Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
         Left D-Pad [Press & Release] = Sets the PID setpoint to intake the cargo from the mecanum intake
+    Networking Config:
+        OpenMesh Radio [Event Configured]:
+            IP Address = 10.43.34.1
+        roboRIO [Static]:
+            IP Address = 10.43.34.2
+            Subnet Mask = 255.255.255.0
+            Gateway = 10.43.34.1
+            DNS Server = 10.43.34.1
+        Raspberry Pi [Static]:
+            IP Address = 10.43.34.10
+            Subnet Mask = 255.255.255.0
+            Gateway = 10.43.34.1
+            DNS Server = 10.43.34.1
+        Driver Station [Static]:
+            IP Address = 10.43.34.5
+            Subnet Mask = 255.0.0.0
+            Gateway = 10.43.34.1
+            DNS Server = 10.43.34.1
  */
 
 // If you rename or move this class, update the build.properties file in the project root
@@ -86,7 +104,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1504; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -1550; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -192,7 +210,7 @@ public class Robot extends TimedRobot
     @Override
     public void disabledPeriodic()
     {
-        // Grabs the input values from the driverstation SmartDashboard window
+        // Grabs the input values from the driver station SmartDashboard window
         getSmartDashboardValues();
 
         // Calls the function to update the SmartDashboard window's values
