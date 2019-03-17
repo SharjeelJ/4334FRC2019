@@ -6,28 +6,12 @@ import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.kauailabs.navx.frc.AHRS;
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-/*
-    Controls:
-        Left Stick [Hold] = Moves the robot on the Y axis (forward / back)
-        Right Stick [Hold] = Moves the robot on the X axis (left / right)
-        Left Stick [Press & Release] = Toggles the forward direction of the drivetrain
-        Right Stick [Press & Release] = Switches the drivetrain gear shifter solenoid to high gear (shifts to low gear automatically when the robot slows down)
-        Left Bumper [Press & Hold] = Moves the arm down
-        Right Bumper [Press & Hold] = Moves the arm up
-        Left Trigger [Hold] = Outtakes cargo
-        Right Trigger [Hold] = Intakes cargo
-        A Button [Press & Hold] = Engages the hatch panel solenoids (disengages when released)
-        B Button [Press & Release] = Toggles the mecanum intake solenoid
-        Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
-        Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
-        Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
-        Left D-Pad [Press & Release] = Sets the PID setpoint to intake the cargo from the mecanum intake
- */
 
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
@@ -82,11 +66,20 @@ public class Robot extends TimedRobot
     // Initialize the navX object
     private AHRS navX;
 
+    // Initialize configuration values that will be used by the autonomous routines generated using PathWeaver
+    //    private static final int encoderTicksPerRevolution = 30000;
+    //    private static final double wheelDiameter = 0.1524;
+    //    private static final double maxVelocity = 4.5;
+    //    private static final String pathWeaverPathName = "Test2";
+    //    private EncoderFollower drivetrainControllerLeft;
+    //    private EncoderFollower drivetrainControllerRight;
+    //    private Notifier autonomousController;
+
     // Initialize miscellaneous configuration values
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1504; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -1550; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -167,6 +160,13 @@ public class Robot extends TimedRobot
             DriverStation.reportError("Error instantiating navX-MXP:  " + ex.getMessage(), true);
         }
 
+        // Instantiates a UsbCamera object from the CameraServer for the first camera for POV driving (starts the SmartDashboard's camera stream)
+        UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000", 0);
+
+        // Sets the properties for the first camera object
+        //        camera1.setResolution(320, 240);
+        //        camera1.setFPS(15);
+
         // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
         ultrasonicPollingThread();
     }
@@ -212,6 +212,27 @@ public class Robot extends TimedRobot
         // Resets the drivetrain encoders
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
+
+        //        try
+        //        {
+        //            // Gets and sets the specified autonomous routine trajectories for the left and right side of the drivetrain
+        //            Trajectory left_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".left");
+        //            Trajectory right_trajectory = PathfinderFRC.getTrajectory("output/" + pathWeaverPathName + ".right");
+        //            drivetrainControllerLeft = new EncoderFollower(left_trajectory);
+        //            drivetrainControllerRight = new EncoderFollower(right_trajectory);
+        //
+        //            // Configures the drivetrain left and right side controllers to use the appropriate configurations
+        //            drivetrainControllerLeft.configureEncoder(drivetrainMotorLeft1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        //            drivetrainControllerRight.configureEncoder(drivetrainMotorRight1.getSelectedSensorPosition(), encoderTicksPerRevolution, wheelDiameter);
+        //            drivetrainControllerLeft.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
+        //            drivetrainControllerRight.configurePIDVA(0.05, 0.0, 0.0, 1 / maxVelocity, 0);
+        //
+        //            // Sets up the autonomous controller and starts it
+        //            autonomousController = new Notifier(this::followPath);
+        //            autonomousController.startPeriodic(left_trajectory.get(0).dt);
+        //        } catch (IOException e)
+        //        {
+        //        }
     }
 
     // Function that is run periodically during autonomous mode
@@ -220,6 +241,12 @@ public class Robot extends TimedRobot
     {
         // Calls the function for tele-operated mode
         teleopPeriodic();
+
+        // Gets the values from the SmartDashboard
+        //        getSmartDashboardValues();
+
+        // Calls the function to update the SmartDashboard window's values
+        //        updateSmartDashboard();
     }
 
     // Function that is called once each time the robot enters tele-operated mode
@@ -236,7 +263,8 @@ public class Robot extends TimedRobot
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
 
-        // Stops the drivetrain
+        // Stops the autonomous controller and the drivetrain
+        //        autonomousController.stop();
         robotDrive.stopMotor();
     }
 
@@ -244,7 +272,7 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // A button (Press & Hold) - Engages the hatch panel mechanism solenoid
+        // A button (Press & hold) - Engages the hatch panel mechanism solenoid
         if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
         else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
 
@@ -256,13 +284,13 @@ public class Robot extends TimedRobot
             else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
 
-        // Left Bumper (Press & Hold) - Moves the arm down
+        // Left Bumper (Press & hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
             leftArmMotor.set(ControlMode.PercentOutput, 1);
             rightArmMotor.set(ControlMode.PercentOutput, 1);
         }
-        // Right Bumper (Press & Hold) - Moves the arm up if the push button is not pressed
+        // Right Bumper (Press & hold) - Moves the arm up if the push button is not pressed
         else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
             leftArmMotor.set(ControlMode.PercentOutput, -1);
@@ -421,4 +449,29 @@ public class Robot extends TimedRobot
         // Starts the thread
         thread.start();
     }
+
+    // Function that is called to follow the passed in autonomous routine trajectories fed to the drivetrain motor controllers
+    //    private void followPath()
+    //    {
+    //        if (drivetrainControllerLeft.isFinished() || drivetrainControllerRight.isFinished())
+    //        {
+    //            autonomousController.stop();
+    //        } else
+    //        {
+    //            double left_speed = drivetrainControllerLeft.calculate(drivetrainMotorLeft1.getSelectedSensorPosition());
+    //            double right_speed = drivetrainControllerRight.calculate(drivetrainMotorRight1.getSelectedSensorPosition());
+    //            double heading = navX.getAngle();
+    //            double desired_heading = Pathfinder.r2d(drivetrainControllerLeft.getHeading());
+    //            double heading_difference = Pathfinder.boundHalfDegrees(desired_heading - heading);
+    //            double turn = 0.35 * (-1.0 / 80.0) * heading_difference;
+    //            drivetrainMotorGroupLeft.set(left_speed - turn);
+    //            drivetrainMotorGroupRight.set(-right_speed - turn);
+    //            System.out.println("--------------------------------------------------------------------------");
+    //            System.out.println("Drivetrain Left Code: " + left_speed);
+    //            System.out.println("Drivetrain Right Code: " + right_speed);
+    //            System.out.println("Drivetrain Left Actual: " + drivetrainMotorGroupLeft.get());
+    //            System.out.println("Drivetrain Right Actual: " + drivetrainMotorGroupRight.get());
+    //            System.out.println("--------------------------------------------------------------------------");
+    //        }
+    //    }
 }

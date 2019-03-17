@@ -1,104 +1,181 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <option name="DEFAULT_COMPILER" value="Javac"/>
-    <resourceExtensions>
-      <entry name=".+\.(properties|xml|html|dtd|tld)"/>
-      <entry name=".+\.(gif|png|jpeg|jpg)"/>
-    </resourceExtensions>
-    <wildcardResourcePatterns>
-      <entry name="!?*.class"/>
-      <entry name="!?*.scala"/>
-      <entry name="!?*.groovy"/>
-      <entry name="!?*.java"/>
-    </wildcardResourcePatterns>
-    <annotationProcessing enabled="false" useClasspath="true"/>
-    <bytecodeTargetLevel target="11"/>
+    <bytecodeTargetLevel>
+      <module name="4334FRC2019.main" target="11" />
+      <module name="4334FRC2019.test" target="11" />
+    </bytecodeTargetLevel>
   </component>
-  <component name="CopyrightManager" default="">
-    <module2copyright/>
+  <component name="Encoding" addBOMForNewFiles="with NO BOM" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="distributionType" value="WRAPPED" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+          </set>
+        </option>
+        <option name="useAutoImport" value="true" />
+        <option name="useQualifiedModuleNames" value="true" />
+      </GradleProjectSettings>
+    </option>
   </component>
-  <component name="DependencyValidationManager">
-    <option name="SKIP_IMPORT_STATEMENTS" value="false"/>
-  </component>
-  <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false"/>
-  <component name="GradleUISettings">
-    <setting name="root"/>
-  </component>
-  <component name="GradleUISettings2">
-    <setting name="root"/>
-  </component>
-  <component name="IdProvider" IDEtalkID="11DA1DB66DD62DDA1ED602B7079FE97C"/>
-  <component name="JavadocGenerationManager">
-    <option name="OUTPUT_DIRECTORY"/>
-    <option name="OPTION_SCOPE" value="protected"/>
-    <option name="OPTION_HIERARCHY" value="true"/>
-    <option name="OPTION_NAVIGATOR" value="true"/>
-    <option name="OPTION_INDEX" value="true"/>
-    <option name="OPTION_SEPARATE_INDEX" value="true"/>
-    <option name="OPTION_DOCUMENT_TAG_USE" value="false"/>
-    <option name="OPTION_DOCUMENT_TAG_AUTHOR" value="false"/>
-    <option name="OPTION_DOCUMENT_TAG_VERSION" value="false"/>
-    <option name="OPTION_DOCUMENT_TAG_DEPRECATED" value="true"/>
-    <option name="OPTION_DEPRECATED_LIST" value="true"/>
-    <option name="OTHER_OPTIONS" value=""/>
-    <option name="HEAP_SIZE"/>
-    <option name="LOCALE"/>
-    <option name="OPEN_IN_BROWSER" value="true"/>
+  <component name="InspectionProjectProfileManager">
+    <profile version="1.0">
+      <option name="myName" value="Project Default" />
+    </profile>
+    <version value="1.0" />
   </component>
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/4334FRC2019.iml" filepath="$PROJECT_DIR$/4334FRC2019.iml"/>
+      <module fileurl="file://$PROJECT_DIR$/4334FRC2019.iml" filepath="$PROJECT_DIR$/4334FRC2019.iml" />
+      <module fileurl="file://$PROJECT_DIR$/4334FRC2019.main.iml" filepath="$PROJECT_DIR$/4334FRC2019.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/4334FRC2019.test.iml" filepath="$PROJECT_DIR$/4334FRC2019.test.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" assert-keyword="true" jdk-15="true" project-jdk-type="JavaSDK" assert-jdk-15="true" project-jdk-name="11">
-    <output url="file://$PROJECT_DIR$/out"/>
-  </component>
-  <component name="SvnBranchConfigurationManager">
-    <option name="mySupportsUserInfoFilter" value="true"/>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="11" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/classes" />
   </component>
   <component name="VcsDirectoryMappings">
-    <mapping directory="" vcs=""/>
+    <mapping directory="" vcs="Git" />
   </component>
-  <component name="masterDetails">
-    <states>
-      <state key="ArtifactsStructureConfigurable.UI">
-        <UIState>
-          <splitter-proportions>
-            <SplitterProportionsDataImpl/>
-          </splitter-proportions>
-          <settings/>
-        </UIState>
-      </state>
-      <state key="Copyright.UI">
-        <UIState>
-          <splitter-proportions>
-            <SplitterProportionsDataImpl/>
-          </splitter-proportions>
-        </UIState>
-      </state>
-      <state key="ProjectJDKs.UI">
-        <UIState>
-          <splitter-proportions>
-            <SplitterProportionsDataImpl>
-              <option name="proportions">
-                <list>
-                  <option value="0.2"/>
-                </list>
-              </option>
-            </SplitterProportionsDataImpl>
-          </splitter-proportions>
-          <last-edited>1.6</last-edited>
-        </UIState>
-      </state>
-      <state key="ScopeChooserConfigurable.UI">
-        <UIState>
-          <splitter-proportions>
-            <SplitterProportionsDataImpl/>
-          </splitter-proportions>
-          <settings/>
-        </UIState>
-      </state>
-    </states>
+  <component name="libraryTable">
+    <library name="Gradle: com.ctre.phoenix:api-java:5.14.0">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/com/ctre/phoenix/api-java/5.14.0/api-java-5.14.0.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/com/ctre/phoenix/api-java/5.14.0/api-java-5.14.0-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: com.ctre.phoenix:wpiapi-java:5.14.0">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/com/ctre/phoenix/wpiapi-java/5.14.0/wpiapi-java-5.14.0.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/com/ctre/phoenix/wpiapi-java/5.14.0/wpiapi-java-5.14.0-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: com.kauailabs.navx.frc:navx-java:3.1.366">
+      <CLASSES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.kauailabs.navx.frc/navx-java/3.1.366/61a5d7a55c6f96fa1b15c52eaab3e1ecd27331e5/navx-java-3.1.366.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.kauailabs.navx.frc/navx-java/3.1.366/50bfa74f146e110b7edc72b5d337e81c21345f7f/navx-java-3.1.366-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.cameraserver:cameraserver-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/cameraserver/cameraserver-java/2019.4.1/cameraserver-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/cameraserver/cameraserver-java/2019.4.1/cameraserver-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.cscore:cscore-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/cscore/cscore-java/2019.4.1/cscore-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/cscore/cscore-java/2019.4.1/cscore-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.hal:hal-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/hal/hal-java/2019.4.1/hal-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/hal/hal-java/2019.4.1/hal-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.ntcore:ntcore-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/ntcore/ntcore-java/2019.4.1/ntcore-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/ntcore/ntcore-java/2019.4.1/ntcore-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.thirdparty.frc2019.opencv:opencv-java:3.4.4-4">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/thirdparty/frc2019/opencv/opencv-java/3.4.4-4/opencv-java-3.4.4-4.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/thirdparty/frc2019/opencv/opencv-java/3.4.4-4/opencv-java-3.4.4-4-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.wpilibj:wpilibj-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/wpilibj/wpilibj-java/2019.4.1/wpilibj-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/wpilibj/wpilibj-java/2019.4.1/wpilibj-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: edu.wpi.first.wpiutil:wpiutil-java:2019.4.1">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/wpiutil/wpiutil-java/2019.4.1/wpiutil-java-2019.4.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/edu/wpi/first/wpiutil/wpiutil-java/2019.4.1/wpiutil-java-2019.4.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: jaci.jniloader:JNILoader:1.0.1">
+      <CLASSES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.jniloader/JNILoader/1.0.1/cda8f6f8880538cb168c9d6cf62e2d96c01ee7b5/JNILoader-1.0.1.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.jniloader/JNILoader/1.0.1/43472fb5bec68edf76f499d3ba49b7746465885a/JNILoader-1.0.1-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: jaci.pathfinder:Pathfinder-FRCSupport:2019.2.19">
+      <CLASSES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.pathfinder/Pathfinder-FRCSupport/2019.2.19/c4a4b192cee7c24e6f57098c1f3fb232638432f9/Pathfinder-FRCSupport-2019.2.19.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.pathfinder/Pathfinder-FRCSupport/2019.2.19/1067fc1fae4c7e8780ff98f75a1e8b3f9b29113f/Pathfinder-FRCSupport-2019.2.19-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: jaci.pathfinder:Pathfinder-Java:2019.2.19">
+      <CLASSES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.pathfinder/Pathfinder-Java/2019.2.19/184a2e0b22eb05eccf41512c10b421f10f7cb43/Pathfinder-Java-2019.2.19.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/jaci.pathfinder/Pathfinder-Java/2019.2.19/1cba949fc4de1708c0432029a4396f1e6c3c4489/Pathfinder-Java-2019.2.19-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: junit:junit:4.12">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/junit/junit/4.12/junit-4.12.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/junit/junit/4.12/junit-4.12-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Gradle: org.hamcrest:hamcrest-core:1.3">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/../../../Public/frc2019/maven/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3-sources.jar!/" />
+      </SOURCES>
+    </library>
   </component>
 </project>
