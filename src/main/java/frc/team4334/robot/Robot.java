@@ -1,10 +1,7 @@
 package frc.team4334.robot;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
-import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -60,15 +57,15 @@ public class Robot extends TimedRobot
     private WPI_TalonSRX drivetrainMotorRight2;
 
     // Initialize the arm motors
-    private WPI_VictorSPX leftArmMotor;
-    private WPI_VictorSPX rightArmMotor;
+    private VictorSP leftArmMotor;
+    private VictorSP rightArmMotor;
 
     // Initialize the cargo arm intake motors
-    private VictorSPX cargoArmIntakeMotorLeft;
-    private VictorSPX cargoArmIntakeMotorRight;
+    private VictorSP cargoArmIntakeMotorLeft;
+    private VictorSP cargoArmIntakeMotorRight;
 
     // Initialize the cargo mecanum floor intake motor
-    private VictorSPX cargoMecanumIntakeMotor;
+    private VictorSP cargoMecanumIntakeMotor;
 
     // Initialize solenoids on the PCM ports
     private DoubleSolenoid gearShifterSolenoid;
@@ -122,11 +119,11 @@ public class Robot extends TimedRobot
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
-        leftArmMotor = new WPI_VictorSPX(5);
-        rightArmMotor = new WPI_VictorSPX(8);
-        cargoArmIntakeMotorLeft = new VictorSPX(6);
-        cargoArmIntakeMotorRight = new VictorSPX(4);
-        cargoMecanumIntakeMotor = new VictorSPX(7);
+        leftArmMotor = new VictorSP(5);
+        rightArmMotor = new VictorSP(8);
+        cargoArmIntakeMotorLeft = new VictorSP(6);
+        cargoArmIntakeMotorRight = new VictorSP(4);
+        cargoMecanumIntakeMotor = new VictorSP(7);
 
         // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
@@ -277,20 +274,20 @@ public class Robot extends TimedRobot
         // Left Bumper (Press & Hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
-            leftArmMotor.set(ControlMode.PercentOutput, 1);
-            rightArmMotor.set(ControlMode.PercentOutput, 1);
+            leftArmMotor.set(1);
+            rightArmMotor.set(1);
         }
         // Right Bumper (Press & Hold) - Moves the arm up if the push button is not pressed
         else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
-            leftArmMotor.set(ControlMode.PercentOutput, -1);
-            rightArmMotor.set(ControlMode.PercentOutput, -1);
+            leftArmMotor.set(-1);
+            rightArmMotor.set(-1);
         }
         // Stops the arm motors from moving
         else if (!(armPIDLeft.isEnabled() || armPIDRight.isEnabled()))
         {
-            leftArmMotor.set(ControlMode.PercentOutput, 0);
-            rightArmMotor.set(ControlMode.PercentOutput, 0);
+            leftArmMotor.set(0);
+            rightArmMotor.set(0);
         }
 
         // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
@@ -305,9 +302,9 @@ public class Robot extends TimedRobot
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
-            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoArmIntakeMotorLeft.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoArmIntakeMotorRight.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
+            cargoMecanumIntakeMotor.set(primaryController.getTriggerAxis(GenericHID.Hand.kRight));
 
             // Retracts the cargo mecanum intake if the ball triggers the arm push button and sets the arm to the cargo outtake setpoint
             if (!cargoArmPushButton.get())
@@ -323,16 +320,16 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
-            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
+            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
+            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
+            cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
         else
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, 0);
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, 0);
-            cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, 0);
+            cargoArmIntakeMotorLeft.set(0);
+            cargoArmIntakeMotorRight.set(0);
+            cargoMecanumIntakeMotor.set(0);
         }
 
         // Up D-Pad (Press & Release) - Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
