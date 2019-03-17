@@ -11,6 +11,24 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+/*
+    Controls:
+        Left Stick [Hold] = Moves the robot on the Y axis (forward / back)
+        Right Stick [Hold] = Moves the robot on the X axis (left / right)
+        Left Stick [Press & Release] = Toggles the forward direction of the drivetrain
+        Right Stick [Press & Release] = Switches the drivetrain gear shifter solenoid to high gear (shifts to low gear automatically when the robot slows down)
+        Left Bumper [Press & Hold] = Moves the arm down
+        Right Bumper [Press & Hold] = Moves the arm up
+        Left Trigger [Hold] = Outtakes cargo
+        Right Trigger [Hold] = Intakes cargo
+        A Button [Press & Hold] = Engages the hatch panel solenoids (disengages when released)
+        B Button [Press & Release] = Toggles the mecanum intake solenoid
+        Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
+        Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
+        Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
+        Left D-Pad [Press & Release] = Sets the PID setpoint to intake the cargo from the mecanum intake
+ */
+
 // If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
@@ -68,7 +86,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1504; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground)
+    private static int armPIDOffset = -1504; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -218,8 +236,7 @@ public class Robot extends TimedRobot
         drivetrainMotorLeft1.setSelectedSensorPosition(0);
         drivetrainMotorRight1.setSelectedSensorPosition(0);
 
-        // Stops the autonomous controller and the drivetrain
-        //        autonomousController.stop();
+        // Stops the drivetrain
         robotDrive.stopMotor();
     }
 
@@ -227,7 +244,7 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // A button (Press & hold) - Engages the hatch panel mechanism solenoid
+        // A button (Press & Hold) - Engages the hatch panel mechanism solenoid
         if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
         else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
 
@@ -239,13 +256,13 @@ public class Robot extends TimedRobot
             else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
 
-        // Left Bumper (Press & hold) - Moves the arm down
+        // Left Bumper (Press & Hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
             leftArmMotor.set(ControlMode.PercentOutput, 1);
             rightArmMotor.set(ControlMode.PercentOutput, 1);
         }
-        // Right Bumper (Press & hold) - Moves the arm up if the push button is not pressed
+        // Right Bumper (Press & Hold) - Moves the arm up if the push button is not pressed
         else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
             leftArmMotor.set(ControlMode.PercentOutput, -1);
