@@ -101,7 +101,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1550; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -328; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -119,16 +119,16 @@ public class Robot extends TimedRobot
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
         // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
-        leftArmMotor = new VictorSP(5);
-        rightArmMotor = new VictorSP(8);
-        cargoArmIntakeMotorLeft = new VictorSP(6);
-        cargoArmIntakeMotorRight = new VictorSP(4);
-        cargoMecanumIntakeMotor = new VictorSP(7);
+        leftArmMotor = new VictorSP(2);
+        rightArmMotor = new VictorSP(3);
+        cargoArmIntakeMotorLeft = new VictorSP(1);
+        cargoArmIntakeMotorRight = new VictorSP(0);
+        cargoMecanumIntakeMotor = new VictorSP(4);
 
-        // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
-        gearShifterSolenoid = new DoubleSolenoid(2, 3);
-        hatchMechanismSolenoid = new DoubleSolenoid(0, 1);
-        mecanumIntakeSolenoid = new DoubleSolenoid(6, 7);
+        // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
+        gearShifterSolenoid = new DoubleSolenoid(1, 0);
+        hatchMechanismSolenoid = new DoubleSolenoid(2, 3);
+        mecanumIntakeSolenoid = new DoubleSolenoid(7, 6);
 
         // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
         ultrasonicSensorFrontLeft = new Ultrasonic(30, 29); // Todo: Adjust ports for competition
