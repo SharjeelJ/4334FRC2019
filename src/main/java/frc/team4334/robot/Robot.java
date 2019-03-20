@@ -115,32 +115,32 @@ public class Robot extends TimedRobot
     @Override
     public void robotInit()
     {
-        // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on the CAN bus)
+        // Assigns all the motors to their respective object (the number in brackets is the port # of what is connected where on the CAN bus)
         drivetrainMotorLeft1 = new WPI_TalonSRX(0);
         drivetrainMotorLeft2 = new WPI_TalonSRX(1);
         drivetrainMotorRight1 = new WPI_TalonSRX(2);
         drivetrainMotorRight2 = new WPI_TalonSRX(3);
 
-        // Assigns all the motors to their respective objects (the number in brackets is the port # of what is connected where on PWM)
+        // Assigns all the motors to their respective object (the number in brackets is the port # of what is connected where on PWM)
         leftArmMotor = new WPI_VictorSPX(5);
         rightArmMotor = new WPI_VictorSPX(8);
         cargoArmIntakeMotorLeft = new VictorSPX(6);
         cargoArmIntakeMotorRight = new VictorSPX(4);
         cargoMecanumIntakeMotor = new VictorSPX(7);
 
-        // Assigns all the solenoids to their respective objects (the number in brackets is the port # of what is connected where on the PCM)
+        // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
         hatchMechanismSolenoid = new DoubleSolenoid(0, 1);
         mecanumIntakeSolenoid = new DoubleSolenoid(6, 7);
 
-        // Assigns all the DIO sensors to their respective objects (the number in brackets is the port # of what is connected where on the DIO)
+        // Assigns all the DIO sensors to their respective object (the number in brackets is the port # of what is connected where on the DIO)
         ultrasonicSensorFrontLeft = new Ultrasonic(30, 29); // Todo: Adjust ports for competition
         ultrasonicSensorFrontRight = new Ultrasonic(28, 27); // Todo: Adjust ports for competition
         ultrasonicSensorBack = new Ultrasonic(26, 25); // Todo: Adjust ports for competition
         armPushButton = new DigitalInput(2);
         cargoArmPushButton = new DigitalInput(0);
 
-        // Assigns all the Analog sensors to their respective objects (the number in brackets is the port # of what is connected where on the Analog)
+        // Assigns all the Analog sensors to their respective object (the number in brackets is the port # of what is connected where on the Analog)
         armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
