@@ -3,6 +3,7 @@ package frc.team4334.robot;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
+import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
@@ -98,10 +99,10 @@ public class Robot extends TimedRobot
     private AHRS navX;
 
     // Initialize miscellaneous configuration values
-    private static int reverseDrivetrainDirection = 1;
+    private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -328; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -247; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -138,7 +139,7 @@ public class Robot extends TimedRobot
         cargoArmPushButton = new DigitalInput(0);
 
         // Assigns all the Analog sensors to their respective objects (the number in brackets is the port # of what is connected where on the Analog)
-        armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
+        armPotentiometer = new AnalogPotentiometer(1, armPIDScale, armPIDOffset);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -148,7 +149,8 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the motors
         drivetrainMotorGroupLeft.setInverted(true);
         drivetrainMotorGroupRight.setInverted(true);
-        cargoArmIntakeMotorLeft.setInverted(true);
+        cargoArmIntakeMotorLeft.setInverted(false);
+        cargoArmIntakeMotorRight.setInverted(true);
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
@@ -181,6 +183,13 @@ public class Robot extends TimedRobot
         {
             DriverStation.reportError("Error instantiating navX-MXP:  " + ex.getMessage(), true);
         }
+
+        // Instantiates a UsbCamera object from the CameraServer for the first camera for POV driving (starts the SmartDashboard's camera stream)
+        UsbCamera camera1 = CameraServer.getInstance().startAutomaticCapture("Microsoft LifeCam HD-3000", 0);
+
+        // Sets the properties for the first camera object
+        camera1.setResolution(320, 240);
+        camera1.setFPS(15);
 
         // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
         ultrasonicPollingThread();
@@ -320,8 +329,8 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
-            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
+            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
+            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
             cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
