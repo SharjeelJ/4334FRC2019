@@ -4,9 +4,13 @@ import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.command.PIDSubsystem;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /*
@@ -50,6 +54,7 @@ public class Robot extends TimedRobot
 {
     // Initialize an Xbox 360 controller to control the robot
     private XboxController primaryController = new XboxController(0);
+    private XboxController secondaryController = new XboxController(1);
 
     // Initialize the drivetrain motors
     private WPI_TalonSRX drivetrainMotorLeft1;
@@ -64,6 +69,17 @@ public class Robot extends TimedRobot
     // Initialize the cargo arm intake motors
     private VictorSP cargoArmIntakeMotorLeft;
     private VictorSP cargoArmIntakeMotorRight;
+
+    // Initialize the side winder motor
+    private VictorSP sideWinderMotor;
+
+    // Initialize the potentiometer and hall effect sensors on the hatch
+    private DigitalInput hatchHallEffectLeft;
+    private DigitalInput hatchHallEffectRight;
+    private Potentiometer hatchPotentiometer;
+
+    private double hatchPotentiometerOffset = -5.6;
+    private int hatchPotentiometerScale = 60;
 
     // Initialize the cargo mecanum floor intake motor
     private VictorSP cargoMecanumIntakeMotor;
@@ -87,6 +103,10 @@ public class Robot extends TimedRobot
     private PIDController armPIDLeft;
     private PIDController armPIDRight;
 
+    // Initialize PID controller objects to handle hatch movement
+    private PIDSubsystem sideWinderPID;
+    private boolean sideWinderPIDisEnabled;
+
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
     private SpeedControllerGroup drivetrainMotorGroupRight;
@@ -102,12 +122,16 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -247; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -593; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 185;
     private static final int armPIDCargoIntakeSetpoint = 2;
+
+    private ShuffleboardTab dynamicSettingsTab = Shuffleboard.getTab("Competition");
+    public NetworkTableEntry HALL_EFFECT_LEFT = dynamicSettingsTab.addPersistent("Hall Effect Left", false).getEntry();
+    public NetworkTableEntry HALL_EFFECT_RIGHT = dynamicSettingsTab.addPersistent("Hall Effect Right", false).getEntry();
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -125,6 +149,7 @@ public class Robot extends TimedRobot
         cargoArmIntakeMotorLeft = new VictorSP(1);
         cargoArmIntakeMotorRight = new VictorSP(0);
         cargoMecanumIntakeMotor = new VictorSP(4);
+        sideWinderMotor = new VictorSP(6);
 
         // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(1, 0);
@@ -136,10 +161,15 @@ public class Robot extends TimedRobot
         ultrasonicSensorFrontRight = new Ultrasonic(28, 27); // Todo: Adjust ports for competition
         ultrasonicSensorBack = new Ultrasonic(26, 25); // Todo: Adjust ports for competition
         armPushButton = new DigitalInput(2);
-        cargoArmPushButton = new DigitalInput(0);
+        cargoArmPushButton = new DigitalInput(4);
 
         // Assigns all the Analog sensors to their respective objects (the number in brackets is the port # of what is connected where on the Analog)
         armPotentiometer = new AnalogPotentiometer(1, armPIDScale, armPIDOffset);
+
+        // Assigns all hatch sensors to their respective object
+        hatchHallEffectLeft = new DigitalInput(0);
+        hatchHallEffectRight = new DigitalInput(1);
+        hatchPotentiometer = new AnalogPotentiometer(4, hatchPotentiometerScale, hatchPotentiometerOffset);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -161,6 +191,39 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the arm PID controllers
         armPIDLeft = new PIDController(0.05, 0, 0, armPotentiometer, leftArmMotor);
         armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
+
+        // Sets the appropriate configuration settings for the hatch controller
+        sideWinderPID = new PIDSubsystem(0.01,0,0) {
+            @Override
+            protected double returnPIDInput() {
+                return hatchPotentiometer.get();
+            }
+
+            @Override
+            protected void usePIDOutput(double output) {
+                sideWinderMotor.set(output);
+            }
+
+            @Override
+            protected void initDefaultCommand() {
+                super.setAbsoluteTolerance(0.0);
+                super.setOutputRange(-0.2, 0.2);
+                super.setInputRange(-30, 30);
+            }
+
+            @Override
+            public void enable(){
+                super.enable();
+                sideWinderPIDisEnabled = true;
+            }
+
+            @Override
+            public void disable(){
+                super.disable();
+                sideWinderPIDisEnabled = false;
+            }
+        };
+        sideWinderPID.disable();
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -269,7 +332,7 @@ public class Robot extends TimedRobot
     public void teleopPeriodic()
     {
         // A button (Press & Hold) - Engages the hatch panel mechanism solenoid
-        if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        if (primaryController.getAButton()||secondaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
         else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // B button (Press & Release) - Toggles the mecanum intake solenoid
@@ -395,6 +458,52 @@ public class Robot extends TimedRobot
             armPIDOffset += armPotentiometer.get();
         }
 
+        //Update ShuffleBoard with HallEffect Sensor Status
+        if(hatchHallEffectRight.get()){
+            HALL_EFFECT_RIGHT.setBoolean(true);
+        } else {
+            HALL_EFFECT_RIGHT.setBoolean(false);
+        }
+
+        if(hatchHallEffectLeft.get()){
+            HALL_EFFECT_LEFT.setBoolean(true);
+        } else {
+            HALL_EFFECT_LEFT.setBoolean(false);
+        }
+
+        //System.out.println("Hatch PID Corrected Offset: " + (hatchPotentiometerOffset-hatchPotentiometer.get()));
+
+        if(primaryController.getStartButtonReleased() && !sideWinderPIDisEnabled){
+            sideWinderPID.setSetpoint(0);
+            sideWinderPID.enable();
+            System.out.println("Started PID");
+            System.out.println(hatchPotentiometer.get());
+        }
+
+
+
+        if(sideWinderPIDisEnabled && sideWinderPID.onTarget()){
+            sideWinderPID.disable();
+        }
+
+        //Hatch Side Movement
+        if((primaryController.getYButton() || secondaryController.getBumper(GenericHID.Hand.kRight))&& hatchHallEffectRight.get()){
+            //Move Right
+            sideWinderMotor.set(0.2);
+        } else if((primaryController.getXButton() || secondaryController.getBumper(GenericHID.Hand.kLeft))&& hatchHallEffectLeft.get()){
+            //Move Left
+            sideWinderMotor.set(-0.2);
+        } else if(hatchHallEffectRight.get() && hatchHallEffectLeft.get()){
+            //Get Joystick input
+            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
+        } else if(!hatchHallEffectLeft.get() && (secondaryController.getX(GenericHID.Hand.kLeft))>0){
+            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
+        } else if(!hatchHallEffectRight.get() && (secondaryController.getX(GenericHID.Hand.kLeft)<0)){
+            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
+        } else {
+            sideWinderMotor.set(0);
+        }
+
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
         robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
 
@@ -420,6 +529,7 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Arm PID Corrected Offset", 90 + armPIDOffset - armPotentiometer.get());
         SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
         SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
+        SmartDashboard.putString("Hatch Potentiometer", String.valueOf(hatchPotentiometer.get()));
     }
 
     // Function to get the values from the SmartDashboard window
