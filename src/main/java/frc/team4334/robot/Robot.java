@@ -54,7 +54,6 @@ public class Robot extends TimedRobot
 {
     // Initialize an Xbox 360 controller to control the robot
     private XboxController primaryController = new XboxController(0);
-    private XboxController secondaryController = new XboxController(1);
 
     // Initialize the drivetrain motors
     private WPI_TalonSRX drivetrainMotorLeft1;
@@ -77,9 +76,6 @@ public class Robot extends TimedRobot
     private DigitalInput hatchHallEffectLeft;
     private DigitalInput hatchHallEffectRight;
     private Potentiometer hatchPotentiometer;
-
-    private double hatchPotentiometerOffset = -5.6;
-    private int hatchPotentiometerScale = 60;
 
     // Initialize the cargo mecanum floor intake motor
     private VictorSP cargoMecanumIntakeMotor;
@@ -128,6 +124,8 @@ public class Robot extends TimedRobot
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 185;
     private static final int armPIDCargoIntakeSetpoint = 2;
+    private double hatchPotentiometerOffset = -5.6;
+    private int hatchPotentiometerScale = 60; //Todo: Tune scale
 
     private ShuffleboardTab dynamicSettingsTab = Shuffleboard.getTab("Competition");
     public NetworkTableEntry HALL_EFFECT_LEFT = dynamicSettingsTab.addPersistent("Hall Effect Left", false).getEntry();
@@ -332,7 +330,7 @@ public class Robot extends TimedRobot
     public void teleopPeriodic()
     {
         // A button (Press & Hold) - Engages the hatch panel mechanism solenoid
-        if (primaryController.getAButton()||secondaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
         else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // B button (Press & Release) - Toggles the mecanum intake solenoid
@@ -486,22 +484,20 @@ public class Robot extends TimedRobot
             sideWinderPID.disable();
         }
 
-        //Hatch Side Movement
-        if((primaryController.getYButton() || secondaryController.getBumper(GenericHID.Hand.kRight))&& hatchHallEffectRight.get()){
+        //Move Hatch Left and Right using X(left) and Y(right)
+        if((primaryController.getYButton()) && hatchHallEffectRight.get()){
             //Move Right
             sideWinderMotor.set(0.2);
-        } else if((primaryController.getXButton() || secondaryController.getBumper(GenericHID.Hand.kLeft))&& hatchHallEffectLeft.get()){
+        } else if((primaryController.getXButton()) && hatchHallEffectLeft.get()){
             //Move Left
             sideWinderMotor.set(-0.2);
-        } else if(hatchHallEffectRight.get() && hatchHallEffectLeft.get()){
-            //Get Joystick input
-            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
-        } else if(!hatchHallEffectLeft.get() && (secondaryController.getX(GenericHID.Hand.kLeft))>0){
-            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
-        } else if(!hatchHallEffectRight.get() && (secondaryController.getX(GenericHID.Hand.kLeft)<0)){
-            sideWinderMotor.set((secondaryController.getX(GenericHID.Hand.kLeft))/5);
-        } else {
+        } else if(!sideWinderPIDisEnabled){
             sideWinderMotor.set(0);
+        }
+
+        // Disable SideWinder PID when manual controls are in use
+        if(primaryController.getYButton() || primaryController.getXButton()){
+            sideWinderPID.disable();
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
