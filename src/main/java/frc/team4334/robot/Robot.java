@@ -4,7 +4,9 @@ import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.command.PIDSubsystem;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -103,6 +105,11 @@ public class Robot extends TimedRobot
     private PIDSubsystem sideWinderPID;
     private boolean sideWinderPIDisEnabled;
 
+    // Initialize PID controller objects to handle vision alignment
+    private PIDSubsystem visionAlignPID;
+    private boolean isAlignEnabled;
+    private double visionAlignmentOuput;
+
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
     private SpeedControllerGroup drivetrainMotorGroupRight;
@@ -124,12 +131,27 @@ public class Robot extends TimedRobot
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 185;
     private static final int armPIDCargoIntakeSetpoint = 2;
-    private double hatchPotentiometerOffset = -5.6;
-    private int hatchPotentiometerScale = 60; //Todo: Tune scale
+    private double hatchPotentiometerOffset = 0;
+    private int hatchPotentiometerScale = 1; //Todo: Tune scale
+    private double hatchPotentiometerLeftBound = 0;
+    private double hatchPotentiometerRightBound = 0;
+    private double hatchPIDOutput = 0;
 
     private ShuffleboardTab dynamicSettingsTab = Shuffleboard.getTab("Competition");
-    public NetworkTableEntry HALL_EFFECT_LEFT = dynamicSettingsTab.addPersistent("Hall Effect Left", false).getEntry();
-    public NetworkTableEntry HALL_EFFECT_RIGHT = dynamicSettingsTab.addPersistent("Hall Effect Right", false).getEntry();
+    private NetworkTableEntry HALL_EFFECT_LEFT = dynamicSettingsTab.addPersistent("Hall Effect Left", false).getEntry();
+    private NetworkTableEntry HALL_EFFECT_RIGHT = dynamicSettingsTab.addPersistent("Hall Effect Right", false).getEntry();
+
+    // Create NetworkTable Instance
+    private NetworkTableInstance networkTableInstance;
+
+    // Creates NetworkTable Items
+    private NetworkTable networkTable;
+    private NetworkTableEntry VISION_DRIVE_VALUE;
+    private NetworkTableEntry VISION_SPEED_VALUE;
+    private NetworkTableEntry VISION_ERROR_NOTARGET;
+
+    // Initialize Relay Objects
+    public Relay ledRelay;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -169,6 +191,16 @@ public class Robot extends TimedRobot
         hatchHallEffectRight = new DigitalInput(1);
         hatchPotentiometer = new AnalogPotentiometer(4, hatchPotentiometerScale, hatchPotentiometerOffset);
 
+        // Configures Vision Network Table Objects
+        networkTableInstance = NetworkTableInstance.getDefault();
+        networkTable = networkTableInstance.getTable("datatable");
+        VISION_DRIVE_VALUE = networkTable.getEntry("VISION_DRIVE_VALUE");
+        VISION_SPEED_VALUE = networkTable.getEntry("VISION_SPEED_VALUE");
+        VISION_ERROR_NOTARGET = networkTable.getEntry("VISION_ERROR_NOTARGET");
+
+        // Assigns all relays to their respective objects
+        ledRelay = new Relay(2);
+
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
         drivetrainMotorGroupRight = new SpeedControllerGroup(drivetrainMotorRight1, drivetrainMotorRight2);
@@ -191,7 +223,7 @@ public class Robot extends TimedRobot
         armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
 
         // Sets the appropriate configuration settings for the hatch controller
-        sideWinderPID = new PIDSubsystem(0.01,0,0) {
+        sideWinderPID = new PIDSubsystem(-0.05,0,0) {
             @Override
             protected double returnPIDInput() {
                 return hatchPotentiometer.get();
@@ -199,14 +231,23 @@ public class Robot extends TimedRobot
 
             @Override
             protected void usePIDOutput(double output) {
-                sideWinderMotor.set(output);
+                hatchPIDOutput = output;
+                if(hatchHallEffectLeft.get() && hatchHallEffectRight.get()){
+                    sideWinderMotor.set(output);
+                } else if(!hatchHallEffectLeft.get() && (output > 0)){
+                    sideWinderMotor.set(output);
+                } else if(!hatchHallEffectRight.get() && (output < 0)){
+                    sideWinderMotor.set(output);
+                } else {
+                    sideWinderMotor.set(0);
+                }
             }
 
             @Override
             protected void initDefaultCommand() {
                 super.setAbsoluteTolerance(0.0);
                 super.setOutputRange(-0.2, 0.2);
-                super.setInputRange(-30, 30);
+                //super.setInputRange(0,1);
             }
 
             @Override
@@ -220,8 +261,46 @@ public class Robot extends TimedRobot
                 super.disable();
                 sideWinderPIDisEnabled = false;
             }
+
         };
+
+        sideWinderPID.setOutputRange(-0.2, 0.2);
+        sideWinderPID.setAbsoluteTolerance(0.0);
         sideWinderPID.disable();
+
+        // Sets the appropriate configuration settings for the vision alignment PID controller
+        //Configure Vision Align PID
+        visionAlignPID = new PIDSubsystem("AlignPID", -0.03, 0.0, 0.01) {
+            @Override
+            protected double returnPIDInput() {return navX.getAngle(); }
+            @Override
+            protected void usePIDOutput(double output) {
+                robotDrive.arcadeDrive(0, output);
+                visionAlignmentOuput = output;
+            }
+            @Override
+            protected void initDefaultCommand() { }
+
+            @Override
+            public void enable() {
+                super.enable();
+                isAlignEnabled = true;
+                ledRelay.set(Relay.Value.kForward);
+            }
+
+            @Override
+            public void disable() {
+                super.disable();
+                isAlignEnabled = false;
+                ledRelay.set(Relay.Value.kReverse);
+            }
+        };
+
+        //Configures then disables the PID Controller
+        visionAlignPID.setAbsoluteTolerance(0.5);
+        visionAlignPID.getPIDController().setContinuous(false);
+        visionAlignPID.setOutputRange(-1,1);
+        visionAlignPID.disable();
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -270,6 +349,8 @@ public class Robot extends TimedRobot
         // Disables all PID controllers
         armPIDLeft.disable();
         armPIDRight.disable();
+        sideWinderPID.disable();
+        visionAlignPID.disable();
     }
 
 
@@ -469,19 +550,46 @@ public class Robot extends TimedRobot
             HALL_EFFECT_LEFT.setBoolean(false);
         }
 
+        if(!hatchHallEffectLeft.get()){
+            hatchPotentiometerLeftBound = hatchPotentiometer.get();
+        }
+
+        if(!hatchHallEffectRight.get()){
+            hatchPotentiometerRightBound = hatchPotentiometer.get();
+        }
+
         //System.out.println("Hatch PID Corrected Offset: " + (hatchPotentiometerOffset-hatchPotentiometer.get()));
 
-        if(primaryController.getStartButtonReleased() && !sideWinderPIDisEnabled){
-            sideWinderPID.setSetpoint(0);
+        /*
+        if(primaryController.getStartButtonReleased() && !sideWinderPIDisEnabled && (hatchPotentiometerLeftBound != hatchPotentiometerRightBound)){
+            sideWinderPID.setSetpoint((hatchPotentiometerLeftBound+hatchPotentiometerRightBound)/2);
             sideWinderPID.enable();
             System.out.println("Started PID");
             System.out.println(hatchPotentiometer.get());
         }
+        */
 
+        if(primaryController.getBackButtonReleased() && !isAlignEnabled){
+            visionAlignPID.setSetpoint(navX.getAngle() + VISION_DRIVE_VALUE.getDouble(0));
+            visionAlignPID.enable();
+        }
 
+        // Toggle LED Relay
+        if(primaryController.getStartButtonReleased()){
+            if(ledRelay.get() == Relay.Value.kForward){
+                ledRelay.set(Relay.Value.kReverse);
+            } else if(ledRelay.get() == Relay.Value.kReverse){
+                ledRelay.set(Relay.Value.kForward);
+            }
+        }
 
+        // Disable Hatch PID once completed
         if(sideWinderPIDisEnabled && sideWinderPID.onTarget()){
             sideWinderPID.disable();
+        }
+        // Disable Vision PID once completed
+        if(isAlignEnabled && visionAlignPID.onTarget()){
+            visionAlignPID.disable();
         }
 
         //Move Hatch Left and Right using X(left) and Y(right)
@@ -496,13 +604,19 @@ public class Robot extends TimedRobot
         }
 
         // Disable SideWinder PID when manual controls are in use
-        if(primaryController.getYButton() || primaryController.getXButton()){
+        if((primaryController.getYButton() || primaryController.getXButton()) && sideWinderPIDisEnabled){
             sideWinderPID.disable();
         }
 
-        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
+        // Disable visionAlignPID when manual controls are in use
+        if(Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) > 0.05 || Math.abs(primaryController.getY(GenericHID.Hand.kRight)) > 0.05 || Math.abs(primaryController.getX(GenericHID.Hand.kLeft)) > 0.05 || Math.abs(primaryController.getX(GenericHID.Hand.kRight)) > 0.05){
+            visionAlignPID.disable();
+        }
 
+        if(!isAlignEnabled){
+            // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
+            robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
+        }
         // Gets the values from the SmartDashboard
         getSmartDashboardValues();
 
@@ -526,6 +640,13 @@ public class Robot extends TimedRobot
         SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
         SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
         SmartDashboard.putString("Hatch Potentiometer", String.valueOf(hatchPotentiometer.get()));
+        SmartDashboard.putString("Hatch Corrected Offset", String.valueOf(0));
+        SmartDashboard.putBoolean("Hatch PID Enabled", sideWinderPIDisEnabled);
+        SmartDashboard.putString("Hatch PID Output", String.valueOf(hatchPIDOutput));
+        SmartDashboard.putString("Hatch Left Bounds", String.valueOf(hatchPotentiometerLeftBound));
+        SmartDashboard.putString("Hatch Right Bounds", String.valueOf(hatchPotentiometerRightBound));
+        SmartDashboard.putBoolean("Vision Alignment Enabled", isAlignEnabled);
+        SmartDashboard.putString("Vision Alignment Output", String.valueOf(visionAlignmentOuput));
     }
 
     // Function to get the values from the SmartDashboard window
