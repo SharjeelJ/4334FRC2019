@@ -6,7 +6,6 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.*;
-import edu.wpi.first.wpilibj.command.PIDSubsystem;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Potentiometer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -97,11 +96,6 @@ public class Robot extends TimedRobot
     // Initialize a PID controller object to handle the hatch's horizontal movement
     private PIDController hatchSliderPID;
 
-    // Initialize PID controller objects to handle vision alignment
-    private PIDSubsystem visionAlignPID;
-    private boolean isAlignEnabled;
-    private double visionAlignmentOuput;
-
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
     private SpeedControllerGroup drivetrainMotorGroupRight;
@@ -165,13 +159,6 @@ public class Robot extends TimedRobot
         armPotentiometer = new AnalogPotentiometer(1, armPIDScale, armPIDOffset);
         hatchSliderPotentiometer = new AnalogPotentiometer(4, hatchSliderPotentiometerScale, hatchSliderOffset);
 
-        // Configures Vision Network Table Objects
-        //        networkTableInstance = NetworkTableInstance.getDefault();
-        //        networkTable = networkTableInstance.getTable("datatable");
-        //        VISION_DRIVE_VALUE = networkTable.getEntry("VISION_DRIVE_VALUE");
-        //        VISION_SPEED_VALUE = networkTable.getEntry("VISION_SPEED_VALUE");
-        //        VISION_ERROR_NOTARGET = networkTable.getEntry("VISION_ERROR_NOTARGET");
-
         // Assigns all the relays to their respective objects
         visionAssistLEDrelay = new Relay(2);
 
@@ -197,45 +184,6 @@ public class Robot extends TimedRobot
         armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
         hatchSliderPID = new PIDController(0.05, 0, 0, hatchSliderPotentiometer, hatchSliderMotor);
         hatchSliderPID.setOutputRange(-0.3, 0.3);
-
-        // Sets the appropriate configuration settings for the vision alignment PID controller
-        visionAlignPID = new PIDSubsystem("AlignPID", -0.03, 0.0, 0.01)
-        {
-            @Override
-            protected double returnPIDInput() {return navX.getAngle(); }
-
-            @Override
-            protected void usePIDOutput(double output)
-            {
-                robotDrive.arcadeDrive(0, output);
-                visionAlignmentOuput = output;
-            }
-
-            @Override
-            protected void initDefaultCommand() { }
-
-            @Override
-            public void enable()
-            {
-                super.enable();
-                isAlignEnabled = true;
-                visionAssistLEDrelay.set(Relay.Value.kForward);
-            }
-
-            @Override
-            public void disable()
-            {
-                super.disable();
-                isAlignEnabled = false;
-                visionAssistLEDrelay.set(Relay.Value.kReverse);
-            }
-        };
-
-        // Configures then disables the PID Controller
-        visionAlignPID.setAbsoluteTolerance(0.5);
-        visionAlignPID.getPIDController().setContinuous(false);
-        visionAlignPID.setOutputRange(-1, 1);
-        visionAlignPID.disable();
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
@@ -270,7 +218,6 @@ public class Robot extends TimedRobot
         armPIDLeft.disable();
         armPIDRight.disable();
         hatchSliderPID.disable();
-        visionAlignPID.disable();
     }
 
     // Function that is called periodically during disabled mode
@@ -500,24 +447,6 @@ public class Robot extends TimedRobot
             hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() - 50;
         }
 
-        //        if (primaryController.getBackButtonReleased() && !isAlignEnabled)
-        //        {
-        //            visionAlignPID.setSetpoint(navX.getAngle() + VISION_DRIVE_VALUE.getDouble(0));
-        //            visionAlignPID.enable();
-        //        }
-
-        //        // Disable visionAlignPID when manual controls are in use
-        //        if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) > 0.05 || Math.abs(primaryController.getY(GenericHID.Hand.kRight)) > 0.05 || Math.abs(primaryController.getX(GenericHID.Hand.kLeft)) > 0.05 || Math.abs(primaryController.getX(GenericHID.Hand.kRight)) > 0.05)
-        //        {
-        //            visionAlignPID.disable();
-        //        }
-        //
-        //        if (!isAlignEnabled)
-        //        {
-        //        // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
-        //        robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
-        //        }
-
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
         robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
 
@@ -544,7 +473,5 @@ public class Robot extends TimedRobot
         SmartDashboard.putString("Hatch PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
         SmartDashboard.putString("Hatch PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
         SmartDashboard.putString("Hatch PID Hall Effect Right", String.valueOf(hatchSliderHallEffectRight.get()));
-        SmartDashboard.putBoolean("Vision Alignment Enabled", isAlignEnabled);
-        SmartDashboard.putString("Vision Alignment Output", String.valueOf(visionAlignmentOuput));
     }
 }
