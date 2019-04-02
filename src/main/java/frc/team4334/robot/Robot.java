@@ -121,7 +121,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -644; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -377; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 1;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -129,7 +129,7 @@ public class Robot extends TimedRobot
     private static final int armPIDCargoIntakeSetpoint = 2;
     private static int hatchSliderPIDSetpoint = 0;
     private static int hatchSliderPotentiometerScale = -11050;
-    private static int hatchSliderOffset = 1240; // Todo: Tune offset at competition (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static int hatchSliderOffset = 1201; // Todo: Tune offset at competition (adding moves the setpoint to the right, subtracting moves it to the left)
     private static final int hatchSliderPIDAcceptableError = 3;
 
     // Function that is run once when the robot is first powered on
@@ -196,8 +196,8 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the PID controllers
         armPIDLeft = new PIDController(0.05, 0, 0, armPotentiometer, leftArmMotor);
         armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
-        hatchSliderPID = new PIDController(0.03, 0, 0, hatchSliderPotentiometer, hatchSliderMotor);
-        hatchSliderPID.setOutputRange(-0.4, 0.4);
+        hatchSliderPID = new PIDController(0.05, 0, 0, hatchSliderPotentiometer, hatchSliderMotor);
+        hatchSliderPID.setOutputRange(-0.3, 0.3);
 
         // Sets the appropriate configuration settings for the vision alignment PID controller
         visionAlignPID = new PIDSubsystem("AlignPID", -0.03, 0.0, 0.01)
@@ -327,9 +327,13 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // A Button (Press & Hold) - Engages the hatch panel mechanism solenoid
-        if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
-        else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        // A Button (Press & Release) - Toggles the hatch panel mechanism solenoid
+        if (primaryController.getAButtonReleased())
+        {
+            if (hatchMechanismSolenoid.get() == DoubleSolenoid.Value.kReverse)
+                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
 
         // B Button (Press & Release) - Toggles the mecanum intake solenoid
         if (primaryController.getBButtonReleased())
@@ -470,15 +474,15 @@ public class Robot extends TimedRobot
             armPIDOffset += armPotentiometer.get();
         }
 
-        // Start Button (Press & Release) - Toggles the vision assist LED relay
-        if (primaryController.getStartButtonReleased())
+        // Back Button (Press & Release) - Toggles the vision assist LED relay
+        if (primaryController.getBackButtonReleased())
         {
-            if (visionAssistLEDrelay.get() == Relay.Value.kOff) visionAssistLEDrelay.set(Relay.Value.kOn);
-            else visionAssistLEDrelay.set(Relay.Value.kOff);
+            if (visionAssistLEDrelay.get() == Relay.Value.kReverse) visionAssistLEDrelay.set(Relay.Value.kForward);
+            else visionAssistLEDrelay.set(Relay.Value.kReverse);
         }
 
-        // Back Button (Press & Release) - Enables the hatch slider PID to center the mechanism
-        if (primaryController.getBackButton())
+        // Start Button (Press & Release) - Enables the hatch slider PID to center the mechanism if the middle hall effect sensor is not being triggered
+        if (primaryController.getStartButton() && hatchSliderHallEffectMiddle.get())
         {
             hatchSliderPID.setSetpoint(hatchSliderPIDSetpoint);
             hatchSliderPID.enable();
@@ -488,19 +492,22 @@ public class Robot extends TimedRobot
         {
             hatchSliderPID.disable();
         }
-        // Disables the PID controller object if the hall effect sensors are being triggered and adjusts the offset value
-        else if (hatchSliderPID.isEnabled() && (!hatchSliderHallEffectLeft.get() || !hatchSliderHallEffectRight.get()))
+        // Disables the PID controller object if any of the hall effect sensors are being triggered
+        else if (hatchSliderPID.isEnabled() && (!hatchSliderHallEffectLeft.get() || !hatchSliderHallEffectMiddle.get() || !hatchSliderHallEffectRight.get()))
         {
             hatchSliderPID.disable();
+        }
 
-            if (!hatchSliderHallEffectLeft.get() || !hatchSliderHallEffectRight.get())
-            {
-                //                hatchSliderOffset += Math.abs(hatchSliderPotentiometer.get()) - 50;
-                //                hatchSliderOffset += hatchSliderPotentiometer.get();
-            } else if (!hatchSliderHallEffectMiddle.get())
-            {
-                //                hatchSliderOffset += Math.abs(hatchSliderPotentiometer.get());
-            }
+        // Adjusts the setpoint value any of the hall effect sensors are being triggered
+        if (!hatchSliderHallEffectLeft.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() + 50;
+        } else if (!hatchSliderHallEffectMiddle.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get();
+        } else if (!hatchSliderHallEffectRight.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() - 50;
         }
 
         //        if (primaryController.getBackButtonReleased() && !isAlignEnabled)
