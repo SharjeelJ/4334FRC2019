@@ -15,8 +15,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
     Controls:
         Left Stick [Hold] = Moves the robot on the Y axis (forward / back)
         Right Stick [Hold] = Moves the robot on the X axis (left / right)
-        Left Stick [Press & Release] = Toggles the forward direction of the drivetrain
-        Right Stick [Press & Release] = Switches the drivetrain gear shifter solenoid to high gear (shifts to low gear automatically when the robot slows down)
         Left Bumper [Press & Hold] = Moves the arm down
         Right Bumper [Press & Hold] = Moves the arm up
         Left Trigger [Hold] = Outtakes cargo
@@ -25,6 +23,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
         B Button [Press & Release] = Toggles the mecanum intake solenoid
         X Button [Press & Hold] = Moves the hatch slider mechanism to the left
         Y Button [Press & Hold] = Moves the hatch slider mechanism to the right
+        Start Button [Press & Hold] = Enables the hatch slider PID to center the mechanism
+        Back Button [Press & Release] = Toggles the vision assist LED
         Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
@@ -49,7 +49,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
             DNS Server = 10.43.34.1
  */
 
-// If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
     // Initialize an Xbox 360 controller to control the robot
@@ -114,14 +113,14 @@ public class Robot extends TimedRobot
     // Initialize the navX object
     private AHRS navX;
 
-    // Initialize a relay object to handle the vision assist LED light
+    // Initialize a relay object to handle the vision assist LED
     private Relay visionAssistLEDrelay;
 
     // Initialize miscellaneous configuration values
     private static int reverseDrivetrainDirection = -1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -377; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -382; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 1;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -189,8 +188,8 @@ public class Robot extends TimedRobot
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
-        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
-        gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
+        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
         mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // Sets the appropriate configuration settings for the PID controllers
@@ -378,15 +377,6 @@ public class Robot extends TimedRobot
             rightArmMotor.set(0);
         }
 
-        // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
-        if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft)) reverseDrivetrainDirection *= -1;
-
-        // Right Stick Button (Press & Release) - Enables the drivetrain gear shifter solenoid (switches to high gear) and disables it (switches to low gear) when the robot slows down
-        if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
-        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) <= 0.20)
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
-
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
         {
@@ -408,8 +398,8 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
-            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
+            cargoArmIntakeMotorLeft.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
+            cargoArmIntakeMotorRight.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
             cargoMecanumIntakeMotor.set(-primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
@@ -550,7 +540,6 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Hatch Slide Potentiometer Angle", hatchSliderPotentiometer.get());
         SmartDashboard.putNumber("Hatch Slide Potentiometer Setpoint", hatchSliderPIDSetpoint);
         SmartDashboard.putNumber("Hatch PID Offset", hatchSliderOffset);
-        //        SmartDashboard.putNumber("Hatch PID Corrected Offset", 50 + hatchSliderOffset - Math.abs(hatchSliderPotentiometer.get()));
         SmartDashboard.putNumber("Hatch PID Corrected Offset", hatchSliderOffset - hatchSliderPotentiometer.get());
         SmartDashboard.putString("Hatch PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
         SmartDashboard.putString("Hatch PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
