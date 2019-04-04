@@ -24,7 +24,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
         X Button [Press & Hold] = Moves the hatch slider mechanism to the left
         Y Button [Press & Hold] = Moves the hatch slider mechanism to the right
         Start Button [Press & Hold] = Enables the hatch slider PID to center the mechanism
-        Back Button [Press & Release] = Toggles the vision assist LED
         Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
@@ -51,7 +50,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends TimedRobot
 {
-    // Initialize an Xbox 360 controller to control the robot
+    // Initialize an Xbox controller to control the robot
     private XboxController primaryController = new XboxController(0);
 
     // Initialize the drivetrain motors
@@ -108,9 +107,6 @@ public class Robot extends TimedRobot
     // Initialize the navX object
     private AHRS navX;
 
-    // Initialize a relay object to handle the vision assist LED
-    private Relay visionAssistLEDrelay;
-
     // Initialize miscellaneous configuration values
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
@@ -159,9 +155,6 @@ public class Robot extends TimedRobot
         // Assigns all the Analog sensors to their respective object (the number in brackets is the port # of what is connected where on the Analog)
         armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
         hatchSliderPotentiometer = new AnalogPotentiometer(4, hatchSliderPotentiometerScale, hatchSliderOffset); // Todo: Set port #
-
-        // Assigns all the relays to their respective objects
-        visionAssistLEDrelay = new Relay(2); // Todo: Set port #
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -402,13 +395,6 @@ public class Robot extends TimedRobot
             armPIDLeft.disable();
             armPIDRight.disable();
             armPIDOffset += armPotentiometer.get();
-        }
-
-        // Back Button (Press & Release) - Toggles the vision assist LED relay
-        if (primaryController.getBackButtonReleased())
-        {
-            if (visionAssistLEDrelay.get() == Relay.Value.kReverse) visionAssistLEDrelay.set(Relay.Value.kForward);
-            else visionAssistLEDrelay.set(Relay.Value.kReverse);
         }
 
         // Start Button (Press & Release) - Enables the hatch slider PID to center the mechanism if the middle hall effect sensor is not being triggered
