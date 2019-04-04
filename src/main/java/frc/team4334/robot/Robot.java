@@ -15,14 +15,16 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
     Controls:
         Left Stick [Hold] = Moves the robot on the Y axis (forward / back)
         Right Stick [Hold] = Moves the robot on the X axis (left / right)
-        Left Stick [Press & Release] = Toggles the forward direction of the drivetrain
-        Right Stick [Press & Release] = Switches the drivetrain gear shifter solenoid to high gear (shifts to low gear automatically when the robot slows down)
         Left Bumper [Press & Hold] = Moves the arm down
         Right Bumper [Press & Hold] = Moves the arm up
         Left Trigger [Hold] = Outtakes cargo
         Right Trigger [Hold] = Intakes cargo
         A Button [Press & Hold] = Engages the hatch panel solenoids (disengages when released)
         B Button [Press & Release] = Toggles the mecanum intake solenoid
+        X Button [Press & Hold] = Moves the hatch slider mechanism to the left
+        Y Button [Press & Hold] = Moves the hatch slider mechanism to the right
+        Start Button [Press & Hold] = Enables the hatch slider PID to center the mechanism
+        Back Button [Press & Release] = Toggles the vision assist LED
         Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
         Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
@@ -47,7 +49,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
             DNS Server = 10.43.34.1
  */
 
-// If you rename or move this class, update the build.properties file in the project root
 public class Robot extends TimedRobot
 {
     // Initialize an Xbox 360 controller to control the robot
@@ -67,6 +68,9 @@ public class Robot extends TimedRobot
     private VictorSPX cargoArmIntakeMotorLeft;
     private VictorSPX cargoArmIntakeMotorRight;
 
+    // Initialize the hatch slider motor
+    private WPI_VictorSPX hatchSliderMotor;
+
     // Initialize the cargo mecanum floor intake motor
     private VictorSPX cargoMecanumIntakeMotor;
 
@@ -76,18 +80,22 @@ public class Robot extends TimedRobot
     private DoubleSolenoid mecanumIntakeSolenoid;
 
     // Initialize the sensors on the DIO ports
-    private Ultrasonic ultrasonicSensorFrontLeft;
-    private Ultrasonic ultrasonicSensorFrontRight;
-    private Ultrasonic ultrasonicSensorBack;
     private DigitalInput armPushButton;
     private DigitalInput cargoArmPushButton;
+    private DigitalInput hatchSliderHallEffectLeft;
+    private DigitalInput hatchSliderHallEffectMiddle;
+    private DigitalInput hatchSliderHallEffectRight;
 
     // Initialize the sensors on the Analog ports
     private Potentiometer armPotentiometer;
+    private Potentiometer hatchSliderPotentiometer;
 
     // Initialize PID controller objects to handle the arm's movement
     private PIDController armPIDLeft;
     private PIDController armPIDRight;
+
+    // Initialize a PID controller object to handle the hatch's horizontal movement
+    private PIDController hatchSliderPID;
 
     // Pairs up the drivetrain motors based on their respective side and initializes the drivetrain controlling object
     private SpeedControllerGroup drivetrainMotorGroupLeft;
@@ -100,16 +108,23 @@ public class Robot extends TimedRobot
     // Initialize the navX object
     private AHRS navX;
 
+    // Initialize a relay object to handle the vision assist LED
+    private Relay visionAssistLEDrelay;
+
     // Initialize miscellaneous configuration values
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -1550; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -441; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
     private static final int armPIDHatchIntakeSetpoint = 185;
     private static final int armPIDCargoIntakeSetpoint = 2;
+    private static int hatchSliderPIDSetpoint = 0;
+    private static int hatchSliderPotentiometerScale = -11050;
+    private static int hatchSliderOffset = 1201; // Todo: Tune offset at competition (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static final int hatchSliderPIDAcceptableError = 3;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -127,6 +142,7 @@ public class Robot extends TimedRobot
         cargoArmIntakeMotorLeft = new VictorSPX(6);
         cargoArmIntakeMotorRight = new VictorSPX(4);
         cargoMecanumIntakeMotor = new VictorSPX(7);
+        hatchSliderMotor = new VictorSPX(12); // TODO: Set port #
 
         // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
@@ -134,14 +150,18 @@ public class Robot extends TimedRobot
         mecanumIntakeSolenoid = new DoubleSolenoid(6, 7);
 
         // Assigns all the DIO sensors to their respective object (the number in brackets is the port # of what is connected where on the DIO)
-        ultrasonicSensorFrontLeft = new Ultrasonic(30, 29); // Todo: Adjust ports for competition
-        ultrasonicSensorFrontRight = new Ultrasonic(28, 27); // Todo: Adjust ports for competition
-        ultrasonicSensorBack = new Ultrasonic(26, 25); // Todo: Adjust ports for competition
         armPushButton = new DigitalInput(2);
         cargoArmPushButton = new DigitalInput(0);
+        hatchSliderHallEffectLeft = new DigitalInput(6);  // TODO: Set port #
+        hatchSliderHallEffectMiddle = new DigitalInput(5);  // TODO: Set port #
+        hatchSliderHallEffectRight = new DigitalInput(4);  // TODO: Set port #
 
         // Assigns all the Analog sensors to their respective object (the number in brackets is the port # of what is connected where on the Analog)
         armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
+        hatchSliderPotentiometer = new AnalogPotentiometer(4, hatchSliderPotentiometerScale, hatchSliderOffset); // Todo: Set port #
+
+        // Assigns all the relays to their respective objects
+        visionAssistLEDrelay = new Relay(2); // Todo: Set port #
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -155,24 +175,21 @@ public class Robot extends TimedRobot
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
-        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
-        gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
+        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
         mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
-        // Sets the appropriate configuration settings for the arm PID controllers
+        // Sets the appropriate configuration settings for the PID controllers
         armPIDLeft = new PIDController(0.05, 0, 0, armPotentiometer, leftArmMotor);
         armPIDRight = new PIDController(0.05, 0, 0, armPotentiometer, rightArmMotor);
+        hatchSliderPID = new PIDController(0.05, 0, 0, hatchSliderPotentiometer, hatchSliderMotor);
+        hatchSliderPID.setOutputRange(-0.3, 0.3);
 
         // Sets the appropriate configuration settings for the drivetrain encoders
         drivetrainMotorLeft1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
         drivetrainMotorRight1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 20);
         drivetrainMotorLeft1.setSensorPhase(true);
         drivetrainMotorRight1.setSensorPhase(false);
-
-        // Enables the ultrasonic sensors to calculate distances (need to be polled to give a reading)
-        ultrasonicSensorFrontLeft.setEnabled(true);
-        ultrasonicSensorFrontRight.setEnabled(true);
-        ultrasonicSensorBack.setEnabled(true);
 
         // Attempts to setup the navX object otherwise prints an error
         try
@@ -203,16 +220,13 @@ public class Robot extends TimedRobot
         // Disables all PID controllers
         armPIDLeft.disable();
         armPIDRight.disable();
+        hatchSliderPID.disable();
     }
-
 
     // Function that is called periodically during disabled mode
     @Override
     public void disabledPeriodic()
     {
-        // Grabs the input values from the driver station SmartDashboard window
-        getSmartDashboardValues();
-
         // Calls the function to update the SmartDashboard window's values
         updateSmartDashboard();
     }
@@ -262,16 +276,36 @@ public class Robot extends TimedRobot
     @Override
     public void teleopPeriodic()
     {
-        // A button (Press & Hold) - Engages the hatch panel mechanism solenoid
-        if (primaryController.getAButton()) hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
-        else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        // A Button (Press & Release) - Toggles the hatch panel mechanism solenoid
+        if (primaryController.getAButtonReleased())
+        {
+            if (hatchMechanismSolenoid.get() == DoubleSolenoid.Value.kReverse)
+                hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+            else hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
 
-        // B button (Press & Release) - Toggles the mecanum intake solenoid
+        // B Button (Press & Release) - Toggles the mecanum intake solenoid
         if (primaryController.getBButtonReleased())
         {
             if (mecanumIntakeSolenoid.get() == DoubleSolenoid.Value.kReverse)
                 mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kForward);
             else mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
+        }
+
+        // X Button (Press & Hold) - Moves the hatch slider mechanism to the left
+        if (primaryController.getXButton() && hatchSliderHallEffectLeft.get())
+        {
+            hatchSliderMotor.set(ControlMode.PercentOutput, -0.3);
+        }
+        // Y Button (Press & Hold) - Moves the hatch slider mechanism to the right
+        else if (primaryController.getYButton() && hatchSliderHallEffectRight.get())
+        {
+            hatchSliderMotor.set(ControlMode.PercentOutput, 0.3);
+        }
+        // Stops the hatch slider from moving
+        else if (!hatchSliderPID.isEnabled())
+        {
+            hatchSliderMotor.set(ControlMode.PercentOutput, 0);
         }
 
         // Left Bumper (Press & Hold) - Moves the arm down
@@ -292,15 +326,6 @@ public class Robot extends TimedRobot
             leftArmMotor.set(ControlMode.PercentOutput, 0);
             rightArmMotor.set(ControlMode.PercentOutput, 0);
         }
-
-        // Left Stick Button (Press & Release) - Toggles the forward direction of the drivetrain
-        if (primaryController.getStickButtonReleased(GenericHID.Hand.kLeft)) reverseDrivetrainDirection *= -1;
-
-        // Right Stick Button (Press & Release) - Enables the drivetrain gear shifter solenoid (switches to high gear) and disables it (switches to low gear) when the robot slows down
-        if (primaryController.getStickButtonReleased(GenericHID.Hand.kRight))
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
-        else if (Math.abs(primaryController.getY(GenericHID.Hand.kLeft)) <= 0.20)
-            gearShifterSolenoid.set(DoubleSolenoid.Value.kReverse);
 
         // Right Trigger (Hold) - Intakes cargo
         if (primaryController.getTriggerAxis(GenericHID.Hand.kRight) >= 0.2)
@@ -323,8 +348,8 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.60);
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
             cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
@@ -389,11 +414,44 @@ public class Robot extends TimedRobot
             armPIDOffset += armPotentiometer.get();
         }
 
+        // Back Button (Press & Release) - Toggles the vision assist LED relay
+        if (primaryController.getBackButtonReleased())
+        {
+            if (visionAssistLEDrelay.get() == Relay.Value.kReverse) visionAssistLEDrelay.set(Relay.Value.kForward);
+            else visionAssistLEDrelay.set(Relay.Value.kReverse);
+        }
+
+        // Start Button (Press & Release) - Enables the hatch slider PID to center the mechanism if the middle hall effect sensor is not being triggered
+        if (primaryController.getStartButton() && hatchSliderHallEffectMiddle.get())
+        {
+            hatchSliderPID.setSetpoint(hatchSliderPIDSetpoint);
+            hatchSliderPID.enable();
+        }
+        // Disables the PID controller object if the potentiometer reading is reasonably close to the setpoint
+        else if (hatchSliderPID.isEnabled() && (hatchSliderPotentiometer.get() >= hatchSliderPIDSetpoint - hatchSliderPIDAcceptableError && hatchSliderPotentiometer.get() <= hatchSliderPIDSetpoint + hatchSliderPIDAcceptableError))
+        {
+            hatchSliderPID.disable();
+        }
+        // Disables the PID controller object if any of the hall effect sensors are being triggered
+        else if (hatchSliderPID.isEnabled() && (!hatchSliderHallEffectLeft.get() || !hatchSliderHallEffectMiddle.get() || !hatchSliderHallEffectRight.get()))
+        {
+            hatchSliderPID.disable();
+        }
+
+        // Adjusts the setpoint value any of the hall effect sensors are being triggered
+        if (!hatchSliderHallEffectLeft.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() + 50;
+        } else if (!hatchSliderHallEffectMiddle.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get();
+        } else if (!hatchSliderHallEffectRight.get())
+        {
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() - 50;
+        }
+
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
         robotDrive.arcadeDrive(primaryController.getY(GenericHID.Hand.kLeft) * reverseDrivetrainDirection, primaryController.getX(GenericHID.Hand.kRight) * 0.80);
-
-        // Gets the values from the SmartDashboard
-        getSmartDashboardValues();
 
         // Calls the function to update the SmartDashboard window's values
         updateSmartDashboard();
@@ -402,9 +460,6 @@ public class Robot extends TimedRobot
     // Function to update the visually presented data in the SmartDashboard window
     public void updateSmartDashboard()
     {
-        SmartDashboard.putNumber("Ultrasonic Front Left", (ultrasonicSensorFrontLeft.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front Left", 999.0) : ultrasonicSensorFrontLeft.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic Front Right", (ultrasonicSensorFrontRight.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Front Right", 999.0) : ultrasonicSensorFrontRight.getRangeInches());
-        SmartDashboard.putNumber("Ultrasonic Back", (ultrasonicSensorBack.isRangeValid() == false) ? SmartDashboard.getNumber("Ultrasonic Back", 999.0) : ultrasonicSensorBack.getRangeInches());
         SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
         SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
@@ -414,29 +469,12 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Arm PID Corrected Offset", 90 + armPIDOffset - armPotentiometer.get());
         SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
         SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
-    }
-
-    // Function to get the values from the SmartDashboard window
-    public void getSmartDashboardValues()
-    {
-
-    }
-
-    // Function to start a new thread to poll the ultrasonic sensors
-    public void ultrasonicPollingThread()
-    {
-        // Sets up a new thread that polls at a set interval
-        Thread thread = new Thread(() -> {
-            while (!Thread.interrupted())
-            {
-                // Pings the ultrasonic sensors
-                ultrasonicSensorFrontLeft.ping();
-                ultrasonicSensorFrontRight.ping();
-                ultrasonicSensorBack.ping();
-                Timer.delay(0.1);
-            }
-        });
-        // Starts the thread
-        thread.start();
+        SmartDashboard.putNumber("Hatch Slide Potentiometer Angle", hatchSliderPotentiometer.get());
+        SmartDashboard.putNumber("Hatch Slide Potentiometer Setpoint", hatchSliderPIDSetpoint);
+        SmartDashboard.putNumber("Hatch PID Offset", hatchSliderOffset);
+        SmartDashboard.putNumber("Hatch PID Corrected Offset", hatchSliderOffset - hatchSliderPotentiometer.get());
+        SmartDashboard.putString("Hatch PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
+        SmartDashboard.putString("Hatch PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
+        SmartDashboard.putString("Hatch PID Hall Effect Right", String.valueOf(hatchSliderHallEffectRight.get()));
     }
 }
