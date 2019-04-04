@@ -115,7 +115,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -441; // Todo: Tune offset at competition (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -441; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -123,7 +123,7 @@ public class Robot extends TimedRobot
     private static final int armPIDCargoIntakeSetpoint = 2;
     private static int hatchSliderPIDSetpoint = 0;
     private static int hatchSliderPotentiometerScale = -11050;
-    private static int hatchSliderOffset = 1201; // Todo: Tune offset at competition (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static int hatchSliderOffset = 1201; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
     private static final int hatchSliderPIDAcceptableError = 3;
 
     // Function that is run once when the robot is first powered on
@@ -142,7 +142,7 @@ public class Robot extends TimedRobot
         cargoArmIntakeMotorLeft = new VictorSPX(6);
         cargoArmIntakeMotorRight = new VictorSPX(4);
         cargoMecanumIntakeMotor = new VictorSPX(7);
-        hatchSliderMotor = new VictorSPX(12); // TODO: Set port #
+        hatchSliderMotor = new WPI_VictorSPX(12); // TODO: Set port #
 
         // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
@@ -201,16 +201,6 @@ public class Robot extends TimedRobot
         {
             DriverStation.reportError("Error instantiating navX-MXP:  " + ex.getMessage(), true);
         }
-
-        // Initializes and starts a thread to poll the ultrasonics automatically (enables range finding from the ultrasonics)
-        ultrasonicPollingThread();
-    }
-
-    // Function that is called periodically during test mode
-    @Override
-    public void testPeriodic()
-    {
-
     }
 
     // Function that is run once each time the robot enters disabled mode
@@ -463,18 +453,18 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Encoder Left", drivetrainMotorLeft1.getSelectedSensorPosition());
         SmartDashboard.putNumber("Encoder Right", drivetrainMotorRight1.getSelectedSensorPosition());
         SmartDashboard.putNumber("navX Angle", navX.getAngle());
-        SmartDashboard.putNumber("Arm Potentiometer Angle", armPotentiometer.get());
-        SmartDashboard.putNumber("Arm Potentiometer Setpoint", armPIDSetpoint);
+        SmartDashboard.putNumber("Arm PID Potentiometer Angle", armPotentiometer.get());
+        SmartDashboard.putNumber("Arm PID Potentiometer Setpoint", armPIDSetpoint);
         SmartDashboard.putNumber("Arm PID Offset", armPIDOffset);
         SmartDashboard.putNumber("Arm PID Corrected Offset", 90 + armPIDOffset - armPotentiometer.get());
         SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
         SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
-        SmartDashboard.putNumber("Hatch Slide Potentiometer Angle", hatchSliderPotentiometer.get());
-        SmartDashboard.putNumber("Hatch Slide Potentiometer Setpoint", hatchSliderPIDSetpoint);
-        SmartDashboard.putNumber("Hatch PID Offset", hatchSliderOffset);
-        SmartDashboard.putNumber("Hatch PID Corrected Offset", hatchSliderOffset - hatchSliderPotentiometer.get());
-        SmartDashboard.putString("Hatch PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
-        SmartDashboard.putString("Hatch PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
-        SmartDashboard.putString("Hatch PID Hall Effect Right", String.valueOf(hatchSliderHallEffectRight.get()));
+        SmartDashboard.putNumber("Hatch Slider PID Potentiometer Angle", hatchSliderPotentiometer.get());
+        SmartDashboard.putNumber("Hatch Slider PID Potentiometer Setpoint", hatchSliderPIDSetpoint);
+        SmartDashboard.putNumber("Hatch Slider PID Offset", hatchSliderOffset);
+        SmartDashboard.putNumber("Hatch Slider PID Corrected Offset", hatchSliderOffset - hatchSliderPotentiometer.get());
+        SmartDashboard.putString("Hatch Slider PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
+        SmartDashboard.putString("Hatch Slider PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
+        SmartDashboard.putString("Hatch Slider PID Hall Effect Right", String.valueOf(hatchSliderHallEffectRight.get()));
     }
 }
