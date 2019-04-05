@@ -170,3 +170,8 @@ gradle-app.setting
 
 ### Gradle Patch ###
 **/build/
+
+# Other
+*.iml
+*.ipr
+*.iws

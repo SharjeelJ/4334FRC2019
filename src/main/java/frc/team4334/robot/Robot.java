@@ -111,7 +111,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -594; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -691; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -119,7 +119,7 @@ public class Robot extends TimedRobot
     private static final int armPIDCargoIntakeSetpoint = 2;
     private static int hatchSliderPIDSetpoint = 0;
     private static int hatchSliderPotentiometerScale = -1200;
-    private static int hatchSliderOffset = 1151; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static int hatchSliderOffset = 1206; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
     private static final int hatchSliderPIDAcceptableError = 3;
 
     // Function that is run once when the robot is first powered on
@@ -279,11 +279,17 @@ public class Robot extends TimedRobot
         // X Button (Press & Hold) - Moves the hatch slider mechanism to the left
         if (primaryController.getXButton() && hatchSliderHallEffectLeft.get())
         {
+            // Disables the hatch slider PID if it is enabled
+            if (hatchSliderPID.isEnabled()) hatchSliderPID.disable();
+
             hatchSliderMotor.set(ControlMode.PercentOutput, -0.3);
         }
         // Y Button (Press & Hold) - Moves the hatch slider mechanism to the right
         else if (primaryController.getYButton() && hatchSliderHallEffectRight.get())
         {
+            // Disables the hatch slider PID if it is enabled
+            if (hatchSliderPID.isEnabled()) hatchSliderPID.disable();
+
             hatchSliderMotor.set(ControlMode.PercentOutput, 0.3);
         }
         // Stops the hatch slider from moving
@@ -295,12 +301,26 @@ public class Robot extends TimedRobot
         // Left Bumper (Press & Hold) - Moves the arm down
         if (primaryController.getBumper(GenericHID.Hand.kLeft))
         {
+            // Disables the arm PID if it is enabled
+            if (armPIDLeft.isEnabled() || armPIDRight.isEnabled())
+            {
+                armPIDLeft.disable();
+                armPIDRight.disable();
+            }
+
             leftArmMotor.set(ControlMode.PercentOutput, 1);
             rightArmMotor.set(ControlMode.PercentOutput, 1);
         }
         // Right Bumper (Press & Hold) - Moves the arm up if the push button is not pressed
         else if (primaryController.getBumper(GenericHID.Hand.kRight) && armPushButton.get())
         {
+            // Disables the arm PID if it is enabled
+            if (armPIDLeft.isEnabled() || armPIDRight.isEnabled())
+            {
+                armPIDLeft.disable();
+                armPIDRight.disable();
+            }
+
             leftArmMotor.set(ControlMode.PercentOutput, -1);
             rightArmMotor.set(ControlMode.PercentOutput, -1);
         }
@@ -444,14 +464,14 @@ public class Robot extends TimedRobot
         SmartDashboard.putNumber("Arm PID Potentiometer Setpoint", armPIDSetpoint);
         SmartDashboard.putNumber("Arm PID Offset", armPIDOffset);
         SmartDashboard.putNumber("Arm PID Corrected Offset", 90 + armPIDOffset - armPotentiometer.get());
-        SmartDashboard.putString("Arm PID Push Button", String.valueOf(armPushButton.get()));
-        SmartDashboard.putString("Arm Cargo Push Button", String.valueOf(cargoArmPushButton.get()));
+        SmartDashboard.putBoolean("Arm PID Push Button", armPushButton.get());
+        SmartDashboard.putBoolean("Arm Cargo Push Button", cargoArmPushButton.get());
         SmartDashboard.putNumber("Hatch Slider PID Potentiometer Angle", hatchSliderPotentiometer.get());
         SmartDashboard.putNumber("Hatch Slider PID Potentiometer Setpoint", hatchSliderPIDSetpoint);
         SmartDashboard.putNumber("Hatch Slider PID Offset", hatchSliderOffset);
         SmartDashboard.putNumber("Hatch Slider PID Corrected Offset", hatchSliderOffset - hatchSliderPotentiometer.get());
-        SmartDashboard.putString("Hatch Slider PID Hall Effect Left", String.valueOf(hatchSliderHallEffectLeft.get()));
-        SmartDashboard.putString("Hatch Slider PID Hall Effect Middle", String.valueOf(hatchSliderHallEffectMiddle.get()));
-        SmartDashboard.putString("Hatch Slider PID Hall Effect Right", String.valueOf(hatchSliderHallEffectRight.get()));
+        SmartDashboard.putBoolean("Hatch Slider PID Hall Effect Left", hatchSliderHallEffectLeft.get());
+        SmartDashboard.putBoolean("Hatch Slider PID Hall Effect Middle", hatchSliderHallEffectMiddle.get());
+        SmartDashboard.putBoolean("Hatch Slider PID Hall Effect Right", hatchSliderHallEffectRight.get());
     }
 }
