@@ -111,7 +111,7 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -691; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -690; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
@@ -119,8 +119,8 @@ public class Robot extends TimedRobot
     private static final int armPIDCargoIntakeSetpoint = 2;
     private static int hatchSliderPIDSetpoint = 0;
     private static int hatchSliderPotentiometerScale = -1200;
-    private static int hatchSliderOffset = 1206; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
-    private static final int hatchSliderPIDAcceptableError = 3;
+    private static int hatchSliderOffset = 1205; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static final int hatchSliderPIDAcceptableError = 1;
 
     // Function that is run once when the robot is first powered on
     @Override
@@ -169,7 +169,7 @@ public class Robot extends TimedRobot
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
-        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
+        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
         gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
         mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
@@ -352,8 +352,8 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.70);
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.70);
             cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
