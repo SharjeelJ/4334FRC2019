@@ -26,7 +26,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
         Start Button [Press & Hold] = Enables the hatch slider PID to center the mechanism
         Up D-Pad [Press & Release] = Sets the PID setpoint to intake / outtake the hatch panel and retracts the mecanum intake
         Right D-Pad [Press & Release] = Sets the PID setpoint to outtake the cargo and retracts the mecanum intake
-        Down D-Pad [Press & Release] = Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
+        Down D-Pad [Press & Release] = Sets the PID setpoint to the match starting position and retracts the mecanum intake
         Left D-Pad [Press & Release] = Sets the PID setpoint to intake the cargo from the mecanum intake
     Networking Config:
         OpenMesh Radio [Event Configured]:
@@ -111,15 +111,15 @@ public class Robot extends TimedRobot
     private static int reverseDrivetrainDirection = 1;
     private static int armPIDSetpoint = 90;
     private static int armPIDScale = 1800;
-    private static int armPIDOffset = -441; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
+    private static int armPIDOffset = -594; // Todo: Tune offset (adding moves the setpoint further into the robot, subtracting moves it lower to the ground OR manually set arm to 90 and then replace with the displayed Correct Offset value)
     private static final int armPIDAcceptableError = 2;
     private static final int armPIDHatchOuttakeSetpoint = 90;
     private static final int armPIDHatchIntakeCargoOuttakeSetpoint = 110;
-    private static final int armPIDHatchIntakeSetpoint = 185;
+    private static final int armPIDHatchStartingSetpoint = 40;
     private static final int armPIDCargoIntakeSetpoint = 2;
     private static int hatchSliderPIDSetpoint = 0;
-    private static int hatchSliderPotentiometerScale = -11050;
-    private static int hatchSliderOffset = 1201; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
+    private static int hatchSliderPotentiometerScale = -1200;
+    private static int hatchSliderOffset = 1151; // Todo: Tune offset (adding moves the setpoint to the right, subtracting moves it to the left)
     private static final int hatchSliderPIDAcceptableError = 3;
 
     // Function that is run once when the robot is first powered on
@@ -138,7 +138,7 @@ public class Robot extends TimedRobot
         cargoArmIntakeMotorLeft = new VictorSPX(6);
         cargoArmIntakeMotorRight = new VictorSPX(4);
         cargoMecanumIntakeMotor = new VictorSPX(7);
-        hatchSliderMotor = new WPI_VictorSPX(12); // TODO: Set port #
+        hatchSliderMotor = new WPI_VictorSPX(9);
 
         // Assigns all the solenoids to their respective object (the number in brackets is the port # of what is connected where on the PCM)
         gearShifterSolenoid = new DoubleSolenoid(2, 3);
@@ -146,15 +146,15 @@ public class Robot extends TimedRobot
         mecanumIntakeSolenoid = new DoubleSolenoid(6, 7);
 
         // Assigns all the DIO sensors to their respective object (the number in brackets is the port # of what is connected where on the DIO)
-        armPushButton = new DigitalInput(2);
-        cargoArmPushButton = new DigitalInput(0);
-        hatchSliderHallEffectLeft = new DigitalInput(6);  // TODO: Set port #
-        hatchSliderHallEffectMiddle = new DigitalInput(5);  // TODO: Set port #
-        hatchSliderHallEffectRight = new DigitalInput(4);  // TODO: Set port #
+        armPushButton = new DigitalInput(6);
+        cargoArmPushButton = new DigitalInput(4);
+        hatchSliderHallEffectLeft = new DigitalInput(1);
+        hatchSliderHallEffectMiddle = new DigitalInput(2);
+        hatchSliderHallEffectRight = new DigitalInput(0);
 
         // Assigns all the Analog sensors to their respective object (the number in brackets is the port # of what is connected where on the Analog)
         armPotentiometer = new AnalogPotentiometer(0, armPIDScale, armPIDOffset);
-        hatchSliderPotentiometer = new AnalogPotentiometer(4, hatchSliderPotentiometerScale, hatchSliderOffset); // Todo: Set port #
+        hatchSliderPotentiometer = new AnalogPotentiometer(3, hatchSliderPotentiometerScale, hatchSliderOffset);
 
         // Assigns the drivetrain motors to their respective motor controller group and then passes them on to the drivetrain controller object
         drivetrainMotorGroupLeft = new SpeedControllerGroup(drivetrainMotorLeft1, drivetrainMotorLeft2);
@@ -164,11 +164,12 @@ public class Robot extends TimedRobot
         // Sets the appropriate configuration settings for the motors
         drivetrainMotorGroupLeft.setInverted(true);
         drivetrainMotorGroupRight.setInverted(true);
-        cargoArmIntakeMotorLeft.setInverted(true);
+        cargoArmIntakeMotorLeft.setInverted(false);
+        cargoArmIntakeMotorRight.setInverted(true);
         robotDrive.setSafetyEnabled(true);
 
         // Sets the appropriate configuration settings for the solenoids
-        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kForward);
+        hatchMechanismSolenoid.set(DoubleSolenoid.Value.kReverse);
         gearShifterSolenoid.set(DoubleSolenoid.Value.kForward);
         mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
 
@@ -331,8 +332,8 @@ public class Robot extends TimedRobot
         // Left Trigger (Hold) - Outtakes cargo
         else if (primaryController.getTriggerAxis(GenericHID.Hand.kLeft) >= 0.2)
         {
-            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
-            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.40);
+            cargoArmIntakeMotorLeft.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
+            cargoArmIntakeMotorRight.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft) * 0.80);
             cargoMecanumIntakeMotor.set(ControlMode.PercentOutput, -primaryController.getTriggerAxis(GenericHID.Hand.kLeft));
         }
         // Stops the cargo intake motors
@@ -363,10 +364,10 @@ public class Robot extends TimedRobot
             armPIDRight.enable();
             mecanumIntakeSolenoid.set(DoubleSolenoid.Value.kReverse);
         }
-        // Down D-Pad (Press & Release) - Sets the PID setpoint to intake the hatch panel off the ground and retracts the mecanum intake
+        // Down D-Pad (Press & Release) - Sets the PID setpoint to the match starting position and retracts the mecanum intake
         else if (primaryController.getPOV() == 180)
         {
-            armPIDSetpoint = armPIDHatchIntakeSetpoint;
+            armPIDSetpoint = armPIDHatchStartingSetpoint;
             armPIDLeft.setSetpoint(armPIDSetpoint);
             armPIDRight.setSetpoint(armPIDSetpoint);
             armPIDLeft.enable();
@@ -417,13 +418,13 @@ public class Robot extends TimedRobot
         // Adjusts the setpoint value any of the hall effect sensors are being triggered
         if (!hatchSliderHallEffectLeft.get())
         {
-            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() + 50;
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() + 60;
         } else if (!hatchSliderHallEffectMiddle.get())
         {
             hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get();
         } else if (!hatchSliderHallEffectRight.get())
         {
-            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() - 50;
+            hatchSliderPIDSetpoint = (int) hatchSliderPotentiometer.get() - 65;
         }
 
         // Sends the Y axis input from the left stick (speed) and the X axis input from the right stick (rotation) from the primary controller to move the robot
